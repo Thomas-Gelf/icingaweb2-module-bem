@@ -2,32 +2,45 @@
 
 namespace Icinga\Module\Bem\Controllers;
 
-use Icinga\Module\Monitoring\Backend\MonitoringBackend;
-use Icinga\Module\Bem\ProblemsTable;
-use ipl\Web\CompatController;
 use ipl\Html\Html as h;
 
-class BemController extends CompatController
+class ConsoleController extends ControllerBase
 {
-    private $db;
-
     public function init()
     {
         $this->prepareTabs();
     }
 
-    public function indexAction()
+    public function treeAction()
     {
-        $this->addTitle($this->translate('Hosts and Services for BEM'));
-        $table = new ProblemsTable($this->db());
-        $table->showOnlyProblems(false)->renderTo($this);
-    }
+        $this->addTitle($this->translate('BMC Console'));
 
-    public function problemsAction()
-    {
-        $this->addTitle($this->translate('Problems for BEM'));
-        $table = new ProblemsTable($this->db());
-        $table->renderTo($this);
+        $summaries = [];
+        $varnames = [
+            'environment'   => 'ENVIRONMENT',
+            'bmc_object_class' => 'TEAM',
+            'contact_team'     => 'OS',
+        ];
+
+        foreach ($varnames as $varname => $label) {
+            $summaries[$label] = $this->mergeSummaries(
+                $this->fetchHostSummaries($varname),
+                $this->fetchServiceSummaries($varname)
+            );
+        }
+
+        $c = $this->content();
+        foreach ($summaries as $label => $summary) {
+            $c->add(h::h2($label));
+            foreach ($summary as $key => $cnt) {
+                $c->add(sprintf(
+                    '%s: %d hosts, %d services',
+                    $key,
+                    $cnt->cnt_hosts,
+                    $cnt->cnt_services
+                ))->add(h::br());
+            }
+        }
     }
 
     protected function prepareTabs()
@@ -157,17 +170,5 @@ class BemController extends CompatController
             ),
             []
         )->group('label')->order('hcv.varvalue');
-    }
-
-    /**
-     * @return \Zend_Db_Adapter_Abstract
-     */
-    protected function db()
-    {
-        if ($this->db === null) {
-            $this->db = MonitoringBackend::instance()->getResource()->getDbAdapter();
-        }
-
-        return $this->db;
     }
 }

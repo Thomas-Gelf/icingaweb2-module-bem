@@ -20,6 +20,18 @@ class Config
         return IdoDb::fromMonitoringModule();
     }
 
+    public function getDefaultCellName()
+    {
+        $cells = $this->enumConfiguredCells();
+        if (empty($cells)) {
+            throw new ConfigurationError(
+                'No cell has been configured in [ICINGAWEB_CONFIGDIR]/modules/bem/cells'
+            );
+        }
+
+        return array_shift($cells);
+    }
+
     /**
      * @param $name
      * @param bool $required

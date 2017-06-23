@@ -90,7 +90,7 @@ class ProblemsTable extends ZfQueryBasedTable
 
         $tr->add([
             $this::td($this->fixOutput($row->output)),
-            $this::td($row->{'host.vars.contact_team'},['class' => 'hide-when-compact']),
+            $this::td($row->{'host.vars.contact_team'}, ['class' => 'hide-when-compact']),
             $this::td($row->{'host.vars.bmc_object_class'}, ['class' => 'hide-when-compact']),
         ]);
 
