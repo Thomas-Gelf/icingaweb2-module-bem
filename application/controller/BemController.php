@@ -1,0 +1,173 @@
+<?php
+
+namespace Icinga\Module\Bem\Controllers;
+
+use Icinga\Module\Monitoring\Backend\MonitoringBackend;
+use Icinga\Module\Bem\ProblemsTable;
+use ipl\Web\CompatController;
+use ipl\Html\Html as h;
+
+class BemController extends CompatController
+{
+    private $db;
+
+    public function init()
+    {
+        $this->prepareTabs();
+    }
+
+    public function indexAction()
+    {
+        $this->addTitle($this->translate('Hosts and Services for BEM'));
+        $table = new ProblemsTable($this->db());
+        $table->showOnlyProblems(false)->renderTo($this);
+    }
+
+    public function problemsAction()
+    {
+        $this->addTitle($this->translate('Problems for BEM'));
+        $table = new ProblemsTable($this->db());
+        $table->renderTo($this);
+    }
+
+    protected function prepareTabs()
+    {
+        $this->tabs()->add('problems', [
+            'label' => $this->translate('Problems'),
+            'url'   => 'bem/bem/problems'
+        ])->add('console', [
+            'label' => $this->translate('Problem Tree'),
+            'url'   => 'bem/bem/console'
+        ])->add('index', [
+            'label' => $this->translate('All Objects'),
+            'url'   => 'bem/bem'
+        ])->activate($this->getRequest()->getActionName());
+    }
+
+    protected function mergeSummaries($first, $second)
+    {
+        foreach ($second as $key => $values) {
+            foreach ((array) $values as $p => $v) {
+                $first[$key]->$p = $v;
+            }
+        }
+
+        return $first;
+    }
+
+    protected function indexByLabel($result)
+    {
+        $indexed = [];
+        foreach ($result as $row) {
+            $key = $row->label;
+            unset($row->label);
+            $indexed[$key] = $row;
+        }
+
+        return $indexed;
+    }
+
+    protected function fetchHostSummaries($varname)
+    {
+        $db = $this->db();
+        $columns = [
+            'label'           => "CASE WHEN hcv.varvalue IS NULL THEN '[UNKNOWN]' ELSE hcv.varvalue END",
+            'cnt_hosts'       => 'COUNT(DISTINCT ho.object_id)',
+            'cnt_up'          => 'SUM(CASE WHEN hs.current_state = 0 THEN 1 ELSE 0 END)',
+            'cnt_down'        => 'SUM(CASE WHEN hs.current_state = 1 THEN 1 ELSE 0 END)',
+            // 'cnt_unreachable' => 'SUM(CASE WHEN hs.current_state = 2 THEN 1 ELSE 0 END)',
+            // 'cnt_pending'     => 'SUM(CASE WHEN hs.current_state IS NULL OR hs.has_been_checked = 0 THEN 1 ELSE 0 END)',
+            //'cnt_unknown'     => 'SUM(CASE WHEN hcv.object_id IS NULL THEN 1 ELSE 0 END)',
+        ];
+
+        return $this->indexByLabel(
+            $db->fetchAll($this->prepareHostSummariesQuery($varname)->columns($columns))
+        );
+    }
+
+    protected function fetchServiceSummaries($varname)
+    {
+        $db = $this->db();
+        $columns = [
+            'label'        => "CASE WHEN hcv.varvalue IS NULL THEN '[UNKNOWN]' ELSE hcv.varvalue END",
+            'cnt_services' => 'COUNT(DISTINCT so.object_id)',
+            'cnt_ok'       => 'SUM(CASE WHEN ss.current_state = 0 THEN 1 ELSE 0 END)',
+            'cnt_warning'  => 'SUM(CASE WHEN ss.current_state = 1 THEN 1 ELSE 0 END)',
+            'cnt_critical' => 'SUM(CASE WHEN ss.current_state = 2 THEN 1 ELSE 0 END)',
+            'cnt_unknown'  => 'SUM(CASE WHEN ss.current_state = 3 THEN 1 ELSE 0 END)',
+            //'cnt_unknown'     => 'SUM(CASE WHEN hcv.object_id IS NULL THEN 1 ELSE 0 END)',
+        ];
+
+        return $this->indexByLabel(
+            $db->fetchAll($this->prepareServiceSummariesQuery($varname)->columns($columns))
+        );
+    }
+
+    protected function prepareHostSummariesQuery($varname)
+    {
+        $db = $this->db();
+        return $db->select()->from(
+            ['h' => 'icinga_hosts'],
+            []
+        )->join(
+            ['ho' => 'icinga_objects'],
+            'h.host_object_id = ho.object_id AND ho.is_active = 1',
+            []
+        )->joinLeft(
+            ['hs' => 'icinga_hoststatus'],
+            'ho.object_id = hs.host_object_id',
+            []
+        )->joinLeft(
+            ['hcv' => 'icinga_customvariablestatus'],
+            $db->quoteInto(
+                'ho.object_id = hcv.object_id AND hcv.varname = ?',
+                $varname
+            ),
+            []
+        )->group('label')->order('hcv.varvalue');
+    }
+
+    protected function prepareServiceSummariesQuery($varname)
+    {
+        $db = $this->db();
+        return $db->select()->from(
+            ['h' => 'icinga_hosts'],
+            []
+        )->join(
+            ['ho' => 'icinga_objects'],
+            'h.host_object_id = ho.object_id AND ho.is_active = 1',
+            []
+        )->join(
+            ['s' => 'icinga_services'],
+            'h.host_object_id = s.host_object_id',
+            []
+        )->join(
+            ['so' => 'icinga_objects'],
+            's.service_object_id = so.object_id AND so.is_active = 1',
+            []
+        )->joinLeft(
+            ['ss' => 'icinga_servicestatus'],
+            'so.object_id = ss.service_object_id',
+            []
+        )->joinLeft(
+            ['hcv' => 'icinga_customvariablestatus'],
+            $db->quoteInto(
+                'ho.object_id = hcv.object_id AND hcv.varname = ?',
+                $varname
+            ),
+            []
+        )->group('label')->order('hcv.varvalue');
+    }
+
+    /**
+     * @return \Zend_Db_Adapter_Abstract
+     */
+    protected function db()
+    {
+        if ($this->db === null) {
+            $this->db = MonitoringBackend::instance()->getResource()->getDbAdapter();
+        }
+
+        return $this->db;
+    }
+}

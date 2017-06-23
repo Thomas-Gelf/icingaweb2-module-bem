@@ -1,0 +1,16 @@
+[Unit]
+Description=Icinga BEM issue Sync (%i)
+Documentation=https://github.com/Thomas-Gelf/icingaweb2-module-bem/blob/master/README.md
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/icingacli bem config sync --cell "%i" --trace --verbose
+; For debugging purposes:
+; ExecStart=/usr/bin/icingacli bem config sync --cell "%i" --trace --verbose
+Restart=always
+RestartSec=5
+User=icingaweb2
+
+[Install]
+WantedBy=multi-user.target
