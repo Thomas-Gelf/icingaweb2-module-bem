@@ -4,7 +4,7 @@ namespace Icinga\Module\Bem\Controllers;
 
 use Icinga\Module\Bem\ProblemsTable;
 
-class BemController extends ControllerBase
+class IdoController extends ControllerBase
 {
     public function init()
     {
