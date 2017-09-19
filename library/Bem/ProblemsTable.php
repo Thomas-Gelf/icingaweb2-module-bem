@@ -2,15 +2,24 @@
 
 namespace Icinga\Module\Bem;
 
+use ipl\Html\DeferredText;
 use ipl\Html\Element;
 use ipl\Html\Link;
 use ipl\Web\Table\ZfQueryBasedTable;
+use Zend_Db_Adapter_Abstract as DbAdapter;
 
 class ProblemsTable extends ZfQueryBasedTable
 {
     private $lastHost;
 
     private $showOnlyProblems = true;
+
+    /** @var Cell */
+    private $cell;
+
+    private $checksums = [];
+
+    private $issueDetails;
 
     protected $defaultAttributes = [
         'class' => ['common-table', 'state-table', 'table-row-selectable'],
@@ -36,6 +45,12 @@ class ProblemsTable extends ZfQueryBasedTable
         2 => 'state-critical',
         3 => 'state-unknown',
     ];
+
+    public function setCell(Cell $cell)
+    {
+        $this->cell = $cell;
+        return $this;
+    }
 
     public function getColumnsToBeRendered()
     {
@@ -64,7 +79,7 @@ class ProblemsTable extends ZfQueryBasedTable
             $parent->add($this::th($column));
         }
         foreach (['Contact', 'BMC'] as $column) {
-            $parent->add($this::th($column, ['class' => 'hide-when-compact']));
+            // $parent->add($this::th($column, ['class' => 'hide-when-compact']));
         }
 
         return $parent;
@@ -79,6 +94,7 @@ class ProblemsTable extends ZfQueryBasedTable
         if ($row->service_name === null) {
             $tr->attributes()->add('class', 'host');
             $tr->add($this->tdHost($row)->addAttributes(['colspan' => 2]));
+            $checksum = sha1($row->host_name, true);
         } else {
             $tr->attributes()->add('class', 'service');
             if ($newHost) {
@@ -86,15 +102,57 @@ class ProblemsTable extends ZfQueryBasedTable
             } else {
                 $tr->add([$this::td(''), $this->tdService($row)]);
             }
+            $checksum = sha1($row->host_name . '!' . $row->service_name, true);
         }
 
+        $self = $this;
+        $this->checksums[$checksum] = $checksum;
         $tr->add([
             $this::td($this->fixOutput($row->output)),
-            $this::td($row->{'host.vars.contact_team'}, ['class' => 'hide-when-compact']),
-            $this::td($row->{'host.vars.bmc_object_class'}, ['class' => 'hide-when-compact']),
+            $this::td(DeferredText::create(function () use ($self, $checksum) {
+                $details = $this->getDetailsForChecksum($checksum);
+                if ($details === null) {
+                    return 0;
+                } else {
+                    return $details->cnt_notifications;
+                }
+            })),
+//            $this::td($row->{'host.vars.contact_team'}, ['class' => 'hide-when-compact']),
+//            $this::td($row->{'host.vars.bmc_object_class'}, ['class' => 'hide-when-compact']),
         ]);
 
         return $tr;
+    }
+
+    public function getDetailsForChecksum($checksum)
+    {
+        if ($this->issueDetails === null) {
+            $this->issueDetails = [];
+            foreach ($this->fetchIssueDetails() as $row) {
+                $this->issueDetails[$row->checksum] = $row;
+            }
+        }
+
+        if (array_key_exists($checksum, $this->issueDetails)) {
+            return $this->issueDetails[$checksum];
+        } else {
+            return null;
+        }
+    }
+
+    protected function fetchIssueDetails()
+    {
+        if (empty($this->checksums)) {
+            return [];
+        } else {
+            $db = $this->cell->notifications()->db();
+            return $db->fetchAll(
+                $db->select()->from('bem_issue')->where(
+                    'checksum in (?)',
+                    $this->checksums
+                )
+            );
+        }
     }
 
     protected function fixOutput($output)
@@ -108,7 +166,8 @@ class ProblemsTable extends ZfQueryBasedTable
         if ($row->host_in_downtime === 'y' || $row->host_acknowledged === 'y') {
             $classes[] = 'handled';
         }
-        return $this::td(Link::create($row->host_name, 'monitoring/host/show', [
+        // monitoring/host/show
+        return $this::td(Link::create($row->host_name, 'bem/notification', [
             'host' => $row->host_name
         ]))->addAttributes([
             'class' => $classes
@@ -121,7 +180,8 @@ class ProblemsTable extends ZfQueryBasedTable
         if ($row->service_in_downtime === 'y' || $row->service_acknowledged === 'y') {
             $classes[] = 'handled';
         }
-        return $this::td(Link::create($row->service_name, 'monitoring/service/show', [
+        // monitoring/service/show
+        return $this::td(Link::create($row->service_name, 'bem/notification', [
             'host'    => $row->host_name,
             'service' => $row->service_name
         ], ['class' => 'rowaction']))->addAttributes([
@@ -131,11 +191,10 @@ class ProblemsTable extends ZfQueryBasedTable
 
     protected function prepareQuery()
     {
-        $helper = new QueryHelper($this->db());
         if ($this->showOnlyProblems) {
-            return $helper->selectProblemsForBmc();
+            return $this->cell->selectProblemEvents();
         } else {
-            return $helper->selectBmcObjects();
+            return $this->cell->selectEvents();
         }
     }
 }
