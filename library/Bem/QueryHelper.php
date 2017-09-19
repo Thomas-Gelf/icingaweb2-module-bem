@@ -2,6 +2,7 @@
 
 namespace Icinga\Module\Bem;
 
+use Icinga\Exception\ProgrammingError;
 use Zend_Db_Adapter_Abstract as DbAdapter;
 use Zend_Db_Select as DbSelect;
 
@@ -55,9 +56,7 @@ class QueryHelper
             'service_in_downtime'  => '(NULL)',
             'output'               => 'hs.output',
         ]);
-        $this->addCustomVar($query, 'host', 'contact_team');
-        $this->addCustomVar($query, 'host', 'bmc_timeout');
-        $this->requireCustomVar($query, 'host', 'bmc_object_class');
+
         return $query;
     }
 
@@ -94,10 +93,6 @@ class QueryHelper
             'service_in_downtime'  => $this->downtimeColumn('ss'),
             'output'               => 'ss.output',
         ]);
-
-        $this->addCustomVar($query, 'host', 'contact_team');
-        $this->addCustomVar($query, 'host', 'bmc_timeout');
-        $this->requireCustomVar($query, 'host', 'bmc_object_class');
 
         return $query;
     }
@@ -139,8 +134,23 @@ class QueryHelper
         return $query;
     }
 
-    protected function addCustomVar($query, $type, $name, $required = false)
+    protected function splitVarName($varName)
     {
+        if (preg_match('/^(host|service)/\.vars\.(.+)$/', $varName, $match)) {
+            return [$match[1], $match[2]];
+        } else {
+            throw new ProgrammingError(
+                'Varname expected, got %s',
+                $varName
+            );
+        }
+    }
+
+    public function addCustomVar($query, $type, $name = null, $required = false)
+    {
+        if ($name === null) {
+            list($type, $name) = $this->splitVarName($type);
+        }
         $db = $this->db;
         $alias = $db->quoteIdentifier(($type === 'host' ? 'hcv_' : 'scv_') . $name);
         $column = $db->quoteIdentifier(["$type.vars.$name"]);
@@ -166,8 +176,11 @@ class QueryHelper
         return $this;
     }
 
-    protected function requireCustomVar($query, $type, $name)
+    public function requireCustomVar($query, $type, $name = null)
     {
+        if ($name === null) {
+            list($type, $name) = $this->splitVarName($type);
+        }
         return $this->addCustomVar($query, $type, $name, true);
     }
 
