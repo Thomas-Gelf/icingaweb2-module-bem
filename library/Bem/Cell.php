@@ -2,7 +2,8 @@
 
 namespace Icinga\Module\Bem;
 
-use Icinga\Application\Config;
+use Icinga\Application\Config as Conf;
+use Zend_Db_Select as DbSelect;
 use Icinga\Data\ResourceFactory;
 
 class Cell
@@ -25,39 +26,92 @@ class Cell
     /** @var ImpactPoster */
     private $msend;
 
-    /** @var Issues */
-    private $issueDb;
+    /** @var Notifications */
+    private $notifications;
+
+    /** @var IdoDb */
+    private $ido;
 
     /**
      * BmcCell constructor.
-     * @param Config $config
+     * @param Conf $config
      */
-    public function __construct(Config $config)
+    public function __construct(Conf $config)
     {
         $this->config = $config;
     }
 
-    public function getIssueDb()
+    /**
+     * @return IdoDb
+     */
+    public function getIdo()
     {
-        if ($this->issueDb === null) {
-            $this->issueDb = new Issues(
+        if ($this->ido === null) {
+            $this->ido = IdoDb::fromMonitoringModule();
+        }
+
+        return $this->ido;
+    }
+
+    public function notifications()
+    {
+        if ($this->notifications === null) {
+            $this->notifications = new Notifications(
                 ResourceFactory::create(
-                    $this->config->get('bem', 'db_resource')
+                    $this->config->get('main', 'db_resource')
                 )->getDbAdapter()
             );
         }
 
-        return $this->issueDb;
+        return $this->notifications;
     }
 
     /**
-     * @return Event[]
+     * @return DbSelect
+     */
+    public function selectProblemEvents()
+    {
+        $db = $this->getIdo()->getDb();
+        $helper = new QueryHelper($db);
+        return $this->addVarsToQuery($helper, $helper->selectProblemsForBmc());
+    }
+
+    /**
+     * @return \stdClass[]
      */
     public function fetchProblemEvents()
     {
-        $ido = new QueryHelper();
-        $query = $ido->selectProblemsForBmc();
-        $rows = $ido->getDb()->fetchAll($query);
+        return $this->getIdo()->getDb()->fetchAll($this->selectProblemEvents());
+    }
+
+    /**
+     * @return DbSelect
+     */
+    public function selectEvents()
+    {
+        $db = $this->getIdo()->getDb();
+        $helper = new QueryHelper($db);
+        return $this->addVarsToQuery($helper, $helper->selectBmcObjects());
+    }
+
+    /**
+     * @return \stdClass[]
+     */
+    public function fetchEvents()
+    {
+        $this->getIdo()->getDb()->fetchAll($this->selectEvents());
+    }
+
+    protected function addVarsToQuery(QueryHelper $helper, DbSelect $query)
+    {
+        foreach ($this->getRequiredVarNames() as $varName) {
+            $helper->requireCustomVar($query, $varName);
+        }
+        foreach ($this->getRequiredVarNames() as $varName) {
+            $helper->requireCustomVar($query, $varName);
+        }
+
+        return $query;
     }
 
     /**
@@ -65,6 +119,61 @@ class Cell
      */
     public function fetchOverdueEvents()
     {
+        return [];
+    }
+
+    public function getObjectUrl($host, $service = null)
+    {
+        if ($service === null) {
+            return $this->getHostUrl($host);
+        } else {
+            return $this->getServiceUrl($host, $service);
+        }
+    }
+
+    public function getHostUrl($host)
+    {
+        return $this->getIcingaWebUrl('monitoring/show/host', ['host' => $host]);
+    }
+
+    public function getServiceUrl($host, $service)
+    {
+        return $this->getIcingaWebUrl('monitoring/show/host', [
+            'host'    => $host,
+            'service' => $service,
+        ]);
+    }
+
+    public function getIcingaWebUrl($path = null, $params = [])
+    {
+        $url = rtrim(
+            $this->config->get(
+                'icingaweb',
+                'url',
+                'https://mon.example.com/icingaweb2/'
+            ),
+            '/'
+        );
+
+        if ($path !== null) {
+            $url .= '/' . ltrim($path, '/');
+        }
+
+        if (empty($params)) {
+            return $url;
+        } else {
+            return $this->appendParams($url, $params);
+        }
+    }
+
+    protected function appendParams($url, $params)
+    {
+        $query = [];
+        foreach ($params as $k => $v) {
+            $query[rawurldecode($k)] = rawurlencode($v);
+        }
+
+        return $url . '?' . implode('&', $query);
     }
 
     /**

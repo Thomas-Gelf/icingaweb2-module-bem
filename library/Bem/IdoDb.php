@@ -26,6 +26,14 @@ class IdoDb
     }
 
     /**
+     * @return DbAdapter
+     */
+    public function getDb()
+    {
+        return $this->db;
+    }
+
+    /**
      * Instantiate with a given Icinga Web 2 resource name
      *
      * @param $name
