@@ -121,7 +121,7 @@ class ImpactPoster
             '-n' => $this->getCellName(),
             // Sets the event severity value to the Severity specified
             // For example: -r WARNING or -r CRITICAL
-            '-r' => $this->getSeverity(),
+            '-r' => $this->getEvent()->getSeverity(),
             // Send an object of this class
             '-a' => $this->getObjectClass(),
             // Adds SlotSetValue settings (format: "slot=value;...")
