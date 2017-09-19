@@ -2,10 +2,10 @@
 
 namespace Icinga\Module\Bem;
 
+use DirectoryIterator;
 use Icinga\Application\Config as IcingaConfig;
 use Icinga\Application\Icinga;
 use Icinga\Exception\ConfigurationError;
-use Icinga\Util\DirectoryIterator;
 
 class Config
 {
@@ -77,14 +77,13 @@ class Config
      */
     public function enumConfiguredCells()
     {
-        $files = array();
+        $files = [];
 
         $dir = $this->getCellConfigDir();
         if (! is_dir($dir) || ! is_readable($dir)) {
             return [];
         }
 
-        /** @var \DirectoryIterator $file */
         foreach (new DirectoryIterator($dir) as $file) {
             if ($file->isDot()) {
                 continue;
