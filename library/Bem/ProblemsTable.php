@@ -6,7 +6,6 @@ use ipl\Html\DeferredText;
 use ipl\Html\Element;
 use ipl\Html\Link;
 use ipl\Web\Table\ZfQueryBasedTable;
-use Zend_Db_Adapter_Abstract as DbAdapter;
 
 class ProblemsTable extends ZfQueryBasedTable
 {

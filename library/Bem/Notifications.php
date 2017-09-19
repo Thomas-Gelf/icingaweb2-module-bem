@@ -106,7 +106,7 @@ class Notifications
             'last_severity'     => $event->getSeverity(),
             'last_notification' => $now,
             'next_notification' => $now + $this->getResendInterval(),
-            'cnt_notifications' => new DbExpr('notifications_sent + 1'),
+            'cnt_notifications' => new DbExpr('cnt_notifications + 1'),
             'last_exit_code'    => $poster->getLastExitCode(),
             'last_cmdline'      => $poster->getCommandString(),
             'last_output'       => $poster->getLastOutput(),
