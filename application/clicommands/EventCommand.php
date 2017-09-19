@@ -6,13 +6,13 @@ use Exception;
 use Icinga\Application\Logger;
 use Icinga\Cli\Command;
 use Icinga\Module\Bem\Config;
-use Icinga\Module\Bem\Issues;
+use Icinga\Module\Bem\Notifications;
 use Icinga\Module\Bem\Cell;
 use Icinga\Module\Bem\Event;
 use Icinga\Module\Bem\IdoDb;
 use Icinga\Module\Bem\ImpactPoster;
 
-class BemCommand extends Command
+class EventCommand extends Command
 {
     /** @var Config */
     private $bem;
@@ -40,7 +40,7 @@ class BemCommand extends Command
     public function sendAction()
     {
         $cell = $this->requireCell();
-        $issues = $cell->getIssueDb();
+        $issues = $cell->notifications();
         $poster = $cell->msend();
         $host    = $this->params->getRequired('host');
         $service = $this->params->get('service');
@@ -54,7 +54,7 @@ class BemCommand extends Command
     protected function runOnce()
     {
         $cell = $this->requireCell();
-        $issues = $cell->getIssueDb();
+        $issues = $cell->notifications();
         $poster = $cell->msend();
 
         foreach ($cell->fetchProblemEvents() as $row) {
@@ -72,7 +72,7 @@ class BemCommand extends Command
         }
     }
 
-    protected function sendAndLogEvent(Event $event, ImpactPoster $poster, Issues $issues)
+    protected function sendAndLogEvent(Event $event, ImpactPoster $poster, Notifications $issues)
     {
         $poster->setEvent($event);
         Logger::info("Sending event for %s\n", $event->getUniqueObjectName());
