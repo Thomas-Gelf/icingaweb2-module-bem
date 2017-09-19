@@ -99,7 +99,7 @@ class Cell
      */
     public function fetchEvents()
     {
-        $this->getIdo()->getDb()->fetchAll($this->selectEvents());
+        return $this->getIdo()->getDb()->fetchAll($this->selectEvents());
     }
 
     protected function addVarsToQuery(QueryHelper $helper, DbSelect $query)
