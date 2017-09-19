@@ -48,7 +48,7 @@ class ConsoleController extends ControllerBase
         $this->tabs()->add('problems', [
             'label' => $this->translate('Problems'),
             'url'   => 'bem/bem/problems'
-        ])->add('console', [
+        ])->add('tree', [
             'label' => $this->translate('Problem Tree'),
             'url'   => 'bem/bem/console'
         ])->add('index', [
@@ -59,8 +59,13 @@ class ConsoleController extends ControllerBase
 
     protected function mergeSummaries($first, $second)
     {
-        foreach ($second as $key => $values) {
-            foreach ((array) $values as $p => $v) {
+        foreach ($first as $key => $values) {
+            if (array_key_exists($key, $second)) {
+                $row = $second[$key];
+            } else {
+                $row = $this->emptyServiceSummaryRow();
+            }
+            foreach ((array) $row as $p => $v) {
                 $first[$key]->$p = $v;
             }
         }
@@ -96,6 +101,17 @@ class ConsoleController extends ControllerBase
         return $this->indexByLabel(
             $db->fetchAll($this->prepareHostSummariesQuery($varname)->columns($columns))
         );
+    }
+
+    protected function emptyServiceSummaryRow()
+    {
+        return (object) [
+            'cnt_services' => 0,
+            'cnt_ok'       => 0,
+            'cnt_warning'  => 0,
+            'cnt_critical' => 0,
+            'cnt_unknown'  => 0,
+        ];
     }
 
     protected function fetchServiceSummaries($varname)
