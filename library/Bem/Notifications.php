@@ -10,7 +10,7 @@ use Zend_Db_Expr as DbExpr;
  *
  * Deals with refreshing/updating events in our DB
  */
-class Issues
+class Notifications
 {
     /** @var DbAdapter */
     private $db;
@@ -18,8 +18,8 @@ class Issues
     /** @var |stdClass[] */
     private $issues;
 
-    /** @var string */
-    protected $tableName = 'bmc_issue';
+    /** @var string TODO: Rename to bem_notification? */
+    protected $tableName = 'bem_issue';
 
     /**
      * BemIssues constructor.
@@ -28,6 +28,15 @@ class Issues
     public function __construct(DbAdapter $db)
     {
         $this->db = $db;
+    }
+
+    public function loadByChecksum($checksum)
+    {
+        return $this->db->fetchRow(
+            $this->db->select()
+                ->from($this->tableName)
+                ->where('checksum = ?', $checksum)
+        );
     }
 
     /**
@@ -65,7 +74,7 @@ class Issues
         $now = time();
         $props = [
             'checksum'           => $event->getObjectChecksum(),
-            'bmc_event_id'       => $event->getId(),
+            'bem_event_id'       => $event->getId(),
             'host'               => $event->getHostName(),
             'service'            => $event->getServiceName(),
             'last_priority'      => $event->getPriority(),
@@ -92,7 +101,7 @@ class Issues
         $now = time();
 
         $props = [
-            'bmc_event_id'      => $event->getId(),
+            'bem_event_id'      => $event->getId(),
             'last_priority'     => $event->getPriority(),
             'last_severity'     => $event->getSeverity(),
             'last_notification' => $now,
@@ -147,7 +156,6 @@ class Issues
         $db = $this->db;
         $issues = [];
         $rows = $db->fetchAll($db->select()->from($this->getTableName()));
-
         foreach ($rows as $row) {
             $issues[$row->checksum] = $row;
         }
