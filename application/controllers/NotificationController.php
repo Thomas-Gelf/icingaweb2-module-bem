@@ -2,8 +2,8 @@
 
 namespace Icinga\Module\Bem\Controllers;
 
-use ipl\Html\Html;
-use ipl\Web\Widget\NameValueTable;
+use dipl\Html\Html;
+use dipl\Web\Widget\NameValueTable;
 
 class NotificationController extends ControllerBase
 {

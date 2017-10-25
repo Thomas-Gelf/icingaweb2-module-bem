@@ -4,7 +4,7 @@ namespace Icinga\Module\Bem\Controllers;
 
 use Icinga\Module\Bem\Cell;
 use Icinga\Module\Bem\Config;
-use ipl\Web\CompatController;
+use dipl\Web\CompatController;
 
 class ControllerBase extends CompatController
 {

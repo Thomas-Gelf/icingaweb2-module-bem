@@ -2,7 +2,7 @@
 
 namespace Icinga\Module\Bem\Controllers;
 
-use ipl\Html\Html as h;
+use dipl\Html\Html as h;
 
 class ConsoleController extends ControllerBase
 {

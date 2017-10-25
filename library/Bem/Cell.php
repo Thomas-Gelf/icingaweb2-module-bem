@@ -200,7 +200,6 @@ class Cell
         );
     }
 
-
     public function getRequiredVarNames()
     {
         $this->requireVarMap();

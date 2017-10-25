@@ -2,10 +2,10 @@
 
 namespace Icinga\Module\Bem;
 
-use ipl\Html\DeferredText;
-use ipl\Html\Element;
-use ipl\Html\Link;
-use ipl\Web\Table\ZfQueryBasedTable;
+use dipl\Html\DeferredText;
+use dipl\Html\Element;
+use dipl\Html\Link;
+use dipl\Web\Table\ZfQueryBasedTable;
 
 class ProblemsTable extends ZfQueryBasedTable
 {
