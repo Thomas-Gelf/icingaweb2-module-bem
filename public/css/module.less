@@ -1,0 +1,91 @@
+
+layout.twocols .hide-when-compact {
+  display: none;
+}
+
+table.state-table {
+  table-layout: fixed;
+  thead {
+    th:nth-child(3) {
+      width: 50%;
+    }
+    th:nth-child(4), th:nth-child(5) {
+      width: 5%;
+    }
+    th:first-child, th:nth-child(2) {
+      width: 15%;
+    }
+  }
+  border-collapse: separate;
+  border-spacing: 1px;
+
+  td {
+    padding: 0.25em;
+  }
+}
+
+tr.host {
+  border-top-width: 3px;
+}
+
+td.state-up {
+  background-color: @color-ok;
+  color: white;
+}
+td.state-ok {
+  border-right: 0.5em solid @color-ok;
+}
+
+td.state-warning {
+  background-color: @color-warning;
+  color: white;
+  &.handled { background-color: @color-warning-handled; }
+}
+
+td.state-critical {
+  background-color: @color-critical;
+  color: white;
+  &.handled {
+    background-color: @color-critical-handled;
+    color: @text-color;
+  }
+}
+
+td.state-unknown {
+  background-color: @color-unknown;
+  color: white;
+  &.handled {
+    background-color: @color-unknown-handled;
+    color: @text-color;
+  }
+}
+
+td.state-down {
+  background-color: @color-critical;
+  color: white;
+  &.handled { background-color: @color-critical-handled; }
+}
+
+/** Should be in ipl **/
+form.quicksearch {
+  float: right;
+
+  input.search {
+    width: 8em;
+    min-width: unset;
+    border: none;
+    background-size: 0.75em auto;
+    background-position: 0.5em 0.75em;
+    padding-left: 1.5em;
+    &:focus {
+      width: 16em;
+      .transition(width 0.5s ease);
+      border: none;
+    }
+  }
+}
+
+#layout.twocols form.quicksearch {
+  float: right;
+}
+/** End of ipl **/
