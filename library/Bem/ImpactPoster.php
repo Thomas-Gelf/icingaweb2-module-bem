@@ -19,7 +19,6 @@ class ImpactPoster
     /* return codes */
     protected static $returnCodes = [
         // [bmcdocs]/Event+management+return+codes
-        0 => 'Success',
         1 => 'Bad usage (command includes nonexistent options or an invalid combination of options and arguments)',
         10 => 'Initialization failure',
         11 => 'Trace initialization failed',
@@ -38,17 +37,7 @@ class ImpactPoster
         // [bmcdocs]/mposter+and+msend+return+codes
         31 => 'Failed to initialize language module',
         32 => 'Failed to launch or to connect to the server',
-
-        // Alternatively, generic exit codes:
-        126 => 'Permission problem or command is not an executable',
-        127 => 'Command not found',
-        128 => 'Invalid argument to exit',
-        130 => 'Got Control-C',
-        255 => 'Exit status out of range',
     ];
-
-    /** @var Event */
-    protected $event;
 
     /** @var string */
     protected $cellName;
