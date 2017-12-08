@@ -2,6 +2,7 @@
 
 namespace Icinga\Module\Bem;
 
+use Icinga\Exception\ProgrammingError;
 use Icinga\Module\Monitoring\Object\Host;
 use Icinga\Module\Monitoring\Object\MonitoredObject;
 use Icinga\Module\Monitoring\Object\Service;
@@ -106,8 +107,13 @@ class StateMapper
         // TODO: hardstatename
         if ($object instanceof Host) {
             return static::icingaHostState($object);
-        } else {
+        } elseif ($object instanceof Service) {
             return static::icingaServiceState($object);
+        } else {
+            throw new ProgrammingError(
+                'Cannot determine BMC severity for unsupported MonitoredObject: %s',
+                get_class($object)
+            );
         }
     }
 
