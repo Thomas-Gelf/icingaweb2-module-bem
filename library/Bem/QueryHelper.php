@@ -41,6 +41,17 @@ class QueryHelper
         return $this->db;
     }
 
+    public function filterObject(DbSelect $query, $host, $service = null)
+    {
+        $query->where('ho.name1 = ?', $host);
+
+        if ($service !== null) {
+            $query->where('so.name2 = ?', $service);
+        }
+
+        return $query;
+    }
+
     protected function getHostQuery()
     {
         $hardState = 'CASE WHEN hs.state_type THEN hs.current_state'
@@ -125,7 +136,7 @@ class QueryHelper
         );
     }
 
-    protected function addCustomVars($query, $type, $names)
+    protected function addCustomVars(DbSelect $query, $type, $names)
     {
         foreach ($names as $name) {
             $this->addCustomVar($query, $type, $name);
@@ -146,7 +157,7 @@ class QueryHelper
         }
     }
 
-    public function addCustomVar($query, $type, $name = null, $required = false)
+    public function addCustomVar(DbSelect $query, $type, $name = null, $required = false)
     {
         if ($name === null) {
             list($type, $name) = $this->splitVarName($type);
@@ -176,7 +187,7 @@ class QueryHelper
         return $this;
     }
 
-    public function requireCustomVar($query, $type, $name = null)
+    public function requireCustomVar(DbSelect $query, $type, $name = null)
     {
         if ($name === null) {
             list($type, $name) = $this->splitVarName($type);
