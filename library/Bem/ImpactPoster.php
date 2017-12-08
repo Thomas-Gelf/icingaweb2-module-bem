@@ -2,7 +2,11 @@
 
 namespace Icinga\Module\Bem;
 
-use Icinga\Exception\ProgrammingError;
+use Exception;
+use Icinga\Application\Logger;
+use React\ChildProcess\Process;
+use React\EventLoop\Factory;
+use React\EventLoop\LoopInterface;
 
 /**
  * This is an interface to the BMC Impact Poster (msend)
@@ -55,8 +59,6 @@ class ImpactPoster
     /** @var string */
     protected $prefixDir;
 
-    protected $lastOutput;
-
     public function __construct(
         $cellName,
         $objectClass,
@@ -67,49 +69,78 @@ class ImpactPoster
         $this->prefixDir = $prefixDir;
     }
 
-    public function setEvent(Event $event)
-    {
-        $this->event = $event;
-        return $this;
-    }
-
     public function getVersionString()
     {
+        $cmd = implode(' ', [
+            $this->getPrefixDir('bin/msend'),
+            '-l',
+            $this->getPrefixDir(),
+            '-z'
+        ]);
+
+        return `$cmd`;
         // TODO: msend -l (home) -z
     }
 
-    public function getEvent()
+    public function send(Event $event, $then, LoopInterface $loop = null)
     {
-        if ($this->event === null) {
-            throw new ProgrammingError(
-                'Unable to access an event before one has been set'
+        $event->resetRunStatus();
+        $cmd = 'exec ' . $this->getCommandString($event);
+        $cmd = 'exec sleep 100';
+        // $cmd = 'exec /tmp';
+
+        $event->setLastCmdLine($cmd);
+        $mSend = new Process($cmd);
+        if ($loop === null) {
+            Logger::info('Creating inner loop');
+            $myLoop = Factory::create();
+        } else {
+            $myLoop = $loop;
+        }
+        $mSend->start($myLoop);
+
+        $mSend->stdout->on('data', function ($out) use ($event) {
+            $event->addOutput($out);
+        });
+        $mSend->stderr->on('data', function ($out) use ($event) {
+            $event->addOutput($out);
+        });
+
+        $timer = $myLoop->addTimer(10, function () use ($mSend) {
+            $mSend->terminate();
+        });
+        $mSend->on('exit', function ($exitCode, $termSignal) use ($then, $event, $timer) {
+            $timer->cancel();
+            if ($exitCode === null) {
+                if ($termSignal === null) {
+                    $event->setLastExitCode(255);
+                } else {
+                    $event->setLastExitCode(128 + $termSignal);
+                }
+            } else {
+                $event->setLastExitCode((int) $exitCode);
+            }
+
+            $then($event);
+        });
+        $mSend->on('error', function (Exception $e) use ($then, $event) {
+            $event->addOutput(
+                $e->getMessage()
+                . "\n"
+                . $e->getTraceAsString()
             );
+            $event->setLastExitCode(255);
+            $then($event);
+        });
+
+        if ($loop === null) {
+            $myLoop->run();
         }
 
-        return $this->event;
-    }
-
-    public function send()
-    {
-        $cmd = $this->getCommandString();
-
-        // TODO: exec in a clean way, failsafe, read errors, kill with timeout
-        $this->lastOutput = `$cmd 2>&1`;
         return $this;
     }
 
-    public function getLastOutput()
-    {
-        return $this->lastOutput;
-    }
-
-    public function getLastExitCode()
-    {
-        // Just for now
-        return 0;
-    }
-
-    public function getParameters()
+    public function getParameters(Event $event)
     {
         // [bmcdocs]/Event+management+common+command+options
         // [bmcdocs]/mposter+and+msend+syntax
@@ -121,12 +152,12 @@ class ImpactPoster
             '-n' => $this->getCellName(),
             // Sets the event severity value to the Severity specified
             // For example: -r WARNING or -r CRITICAL
-            '-r' => $this->getEvent()->getSeverity(),
+            '-r' => $event->getSeverity(),
             // Send an object of this class
             '-a' => $this->getObjectClass(),
             // Adds SlotSetValue settings (format: "slot=value;...")
             // For example,-b "msg='this is a test';mc_tool=computer;"
-            '-b' => $this->getEscapedSlotSetValues(),
+            '-b' => $this->getEscapedSlotSetValues($event),
             // milliseconds to wait for message answer (default is 30,000)
             '-w' => 5000,
             // Verbose. We use this to get the Event ID
@@ -137,25 +168,9 @@ class ImpactPoster
         );
     }
 
-    public function getLastId()
+    public function getEscapedSlotSetValues(Event $event)
     {
-        $output = $this->getLastOutput();
-        if (null === $output) {
-            return null;
-        }
-
-        // TODO: figure out how whether we could benefit from this while streaming
-        // to msend's STDIN
-        if (preg_match('/Message #(\d+) - Evtid = (\d+)/', $output, $match)) {
-            return $match[2];
-        } else {
-            return null;
-        }
-    }
-
-    public function getEscapedSlotSetValues()
-    {
-        return escapeshellarg($this->getEvent()->getEscapedParameters());
+        return escapeshellarg($event->getEscapedParameters());
     }
 
     public function getObjectClass()
@@ -198,15 +213,15 @@ class ImpactPoster
         return escapeshellarg($this->getPrefixDir('etc/mclient.conf'));
     }
 
-    public function getCommandString()
+    public function getCommandString(Event $event)
     {
-        return implode(' ', $this->getCommandAsArray());
+        return implode(' ', $this->getCommandAsArray($event));
     }
 
-    public function getFlatArguments()
+    public function getFlatArguments(Event $event)
     {
         $flat = array();
-        foreach ($this->getParameters() as $k => $v) {
+        foreach ($this->getParameters($event) as $k => $v) {
             if (! is_int($k)) {
                 $flat[] = $k;
             }
@@ -216,11 +231,11 @@ class ImpactPoster
         return $flat;
     }
 
-    public function getCommandAsArray()
+    public function getCommandAsArray(Event $event)
     {
         return array_merge(
             array($this->getCommandPath()),
-            $this->getFlatArguments()
+            $this->getFlatArguments($event)
         );
     }
 }
