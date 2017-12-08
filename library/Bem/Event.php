@@ -9,6 +9,12 @@ class Event
     /** @var int */
     private $id;
 
+    private $lastExitCode;
+
+    private $lastCmdLine;
+
+    private $lastOutput = '';
+
     protected function __construct($props)
     {
         $this->props = $props;
@@ -242,6 +248,101 @@ class Event
             $this->getObjectUrl(),
             htmlspecialchars($this->getShortObjectName())
         );
+    }
+
+    /**
+     * @return int
+     */
+    public function getLastExitCode()
+    {
+        return $this->lastExitCode;
+    }
+
+    /**
+     * @param int $lastExitCode
+     * @return $this
+     */
+    public function setLastExitCode($lastExitCode)
+    {
+        $this->lastExitCode = $lastExitCode;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getLastCmdLine()
+    {
+        return $this->lastCmdLine;
+    }
+
+    /**
+     * @param string $lastCmdLine
+     * @return $this
+     */
+    public function setLastCmdLine($lastCmdLine)
+    {
+        $this->lastCmdLine = $lastCmdLine;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getLastOutput()
+    {
+        return $this->lastOutput;
+    }
+
+    /**
+     * @param string $lastOutput
+     * @return $this
+     */
+    public function setLastOutput($lastOutput)
+    {
+        $this->lastOutput = $lastOutput;
+
+        return $this;
+    }
+
+    /**
+     * @param string $output
+     * @return $this
+     */
+    public function addOutput($output)
+    {
+        $this->lastOutput = $output;
+
+        return $this;
+    }
+
+    public function hasBeenSent()
+    {
+        return 0 === $this->getLastExitCode();
+    }
+
+    public function resetRunStatus()
+    {
+        $this->lastOutput = '';
+        $this->lastExitCode = null;
+    }
+
+    public function getLastId()
+    {
+        $output = $this->getLastOutput();
+        if (null === $output) {
+            return null;
+        }
+
+        // TODO: figure out how whether we could benefit from this while streaming
+        // to msend's STDIN
+        if (preg_match('/Message #(\d+) - Evtid = (\d+)/', $output, $match)) {
+            return $match[2];
+        } else {
+            return null;
+        }
     }
 
     protected function getShortObjectName()

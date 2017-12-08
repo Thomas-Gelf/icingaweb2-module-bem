@@ -48,14 +48,14 @@ class Notifications
     }
 
     /**
-     * @param ImpactPoster $poster
+     * @param Event $event
      */
-    public function persistPosterResult(ImpactPoster $poster)
+    public function persistEventResult(Event $event)
     {
-        if ($this->hasIssue($poster->getEvent()->getObjectChecksum())) {
-            $this->updateIssueFromMsendResult($poster);
+        if ($this->hasIssue($event->getObjectChecksum())) {
+            $this->updateIssueFromEvent($event);
         } else {
-            $this->createIssueFromMsendResult($poster);
+            $this->createIssueFromEvent($event);
         }
     }
 
@@ -66,11 +66,10 @@ class Notifications
     }
 
     /**
-     * @param ImpactPoster $poster
+     * @param Event $event
      */
-    protected function createIssueFromMsendResult(ImpactPoster $poster)
+    protected function createIssueFromEvent(Event $event)
     {
-        $event = $poster->getEvent();
         $now = time();
         $props = [
             'checksum'           => $event->getObjectChecksum(),
@@ -83,9 +82,9 @@ class Notifications
             'last_notification'  => $now,
             'next_notification'  => $now + $this->getResendInterval(),
             'cnt_notifications'  => 1,
-            'last_exit_code'     => $poster->getLastExitCode(),
-            'last_cmdline'       => $poster->getCommandString(),
-            'last_output'        => $poster->getLastOutput(),
+            'last_exit_code'     => $event->getLastExitCode(),
+            'last_cmdline'       => $event->getLastCmdLine(),
+            'last_output'        => $event->getLastOutput(),
         ];
 
         $this->db()->insert($this->getTableName(), $props);
@@ -93,11 +92,10 @@ class Notifications
     }
 
     /**
-     * @param ImpactPoster $poster
+     * @param Event $event
      */
-    protected function updateIssueFromMsendResult(ImpactPoster $poster)
+    protected function updateIssueFromEvent(Event $event)
     {
-        $event = $poster->getEvent();
         $now = time();
 
         $props = [
@@ -107,9 +105,9 @@ class Notifications
             'last_notification' => $now,
             'next_notification' => $now + $this->getResendInterval(),
             'cnt_notifications' => new DbExpr('cnt_notifications + 1'),
-            'last_exit_code'    => $poster->getLastExitCode(),
-            'last_cmdline'      => $poster->getCommandString(),
-            'last_output'       => $poster->getLastOutput(),
+            'last_exit_code'    => $event->getLastExitCode(),
+            'last_cmdline'      => $event->getLastCmdLine(),
+            'last_output'       => $event->getLastOutput(),
         ];
 
         $this->db()->update($this->getTableName(), $props, $this->whereEvent($event));
