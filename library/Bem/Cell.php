@@ -73,6 +73,7 @@ class Cell
     {
         $db = $this->getIdo()->getDb();
         $helper = new QueryHelper($db);
+
         return $this->addVarsToQuery($helper, $helper->selectProblemsForBmc());
     }
 
@@ -91,7 +92,23 @@ class Cell
     {
         $db = $this->getIdo()->getDb();
         $helper = new QueryHelper($db);
+
         return $this->addVarsToQuery($helper, $helper->selectBmcObjects());
+    }
+
+    public function fetchSingleObject($host, $service = null)
+    {
+        $db = $this->getIdo()->getDb();
+        $helper = new QueryHelper($db);
+
+        return $this->addVarsToQuery(
+            $helper,
+            $helper->filterObject(
+                $helper->selectBmcObjects(),
+                $host,
+                $service
+            )
+        );
     }
 
     /**
