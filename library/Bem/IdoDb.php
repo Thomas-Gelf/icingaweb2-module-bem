@@ -3,6 +3,7 @@
 namespace Icinga\Module\Bem;
 
 use Icinga\Data\ResourceFactory;
+use Icinga\Exception\IcingaException;
 use Icinga\Module\Monitoring\Backend\MonitoringBackend;
 use Zend_Db_Adapter_Abstract as DbAdapter;
 
@@ -31,6 +32,89 @@ class IdoDb
     public function getDb()
     {
         return $this->db;
+    }
+
+    public function getStateRowFor($host, $service = null)
+    {
+        if ($service === null) {
+            return $this->getHostStateRow($host);
+        } else {
+            return $this->getServiceStateRow($host, $service);
+        }
+    }
+
+    public function getHostStateRow($host)
+    {
+        $query = $this->db->select()->from(
+            ['ho' => 'icinga_objects'],
+            [
+                'id'           => 'ho.object_id',
+                'host_name'    => 'ho.name1',
+                'service_name' => '(NULL)',
+                'state'        => 'hs.current_state',
+                'hard_state'   => 'CASE WHEN hs.has_been_checked = 0 OR hs.has_been_checked IS NULL THEN 99'
+                                . ' ELSE CASE WHEN hs.state_type = 1 THEN hs.current_state'
+                                . ' ELSE hs.last_hard_state END END',
+                'output'       => 'hs.output',
+            ]
+        )->join(
+            ['hs' => 'icinga_hoststatus'],
+            'ho.object_id = hs.host_object_id AND ho.is_active = 1',
+            []
+        )->where('ho.name1 = ?', $host);
+
+        return $this->enrichRowWithVars(
+            $this->assertValidRow(
+                $this->db->fetchRow($query),
+                $host
+            )
+        );
+    }
+
+    public function getServiceStateRow($host, $service)
+    {
+        $query = $this->db->select()->from(
+            ['so' => 'icinga_objects'],
+            [
+                'id'           => 'so.object_id',
+                'host_name'    => 'so.name1',
+                'service_name' => 'so.name2',
+                'state'        => 'ss.current_state',
+            ]
+        )->join(
+            ['ss' => 'icinga_servicestatus'],
+            'so.object_id = ss.service_object_id AND so.is_active = 1',
+            []
+        )->where('so.name1 = ', $host)->where('so.name2 = ?', $service);
+
+        return $this->enrichRowWithVars($this->db->fetchRow($query));
+    }
+
+    protected function assertValidRow($row, $host, $service = null)
+    {
+        if (! is_object($row)) {
+            throw new IcingaException('Not found');
+        }
+
+        return $row;
+    }
+
+    protected function enrichRowWithVars($row)
+    {
+        $query = $this->db->select()->from(
+            ['cv' => 'icinga_customvariablestatus'],
+            ['cv.varname', 'cv.varvalue']
+        )->where('object_id = ?', $row->id);
+
+        foreach ($this->db->fetchPairs($query) as $key => $value) {
+            if ($key === 'host_name') {
+                continue;
+            }
+
+            $row->$key = $value;
+        }
+
+        return $row;
     }
 
     /**
