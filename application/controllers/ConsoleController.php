@@ -87,7 +87,7 @@ class ConsoleController extends ControllerBase
 
     protected function fetchHostSummaries($varname)
     {
-        $db = $this->db();
+        $db = $this->idoDb();
         $columns = [
             'label'           => "CASE WHEN hcv.varvalue IS NULL THEN '[UNKNOWN]' ELSE hcv.varvalue END",
             'cnt_hosts'       => 'COUNT(DISTINCT ho.object_id)',
@@ -116,7 +116,7 @@ class ConsoleController extends ControllerBase
 
     protected function fetchServiceSummaries($varname)
     {
-        $db = $this->db();
+        $db = $this->idoDb();
         $columns = [
             'label'        => "CASE WHEN hcv.varvalue IS NULL THEN '[UNKNOWN]' ELSE hcv.varvalue END",
             'cnt_services' => 'COUNT(DISTINCT so.object_id)',
@@ -134,7 +134,7 @@ class ConsoleController extends ControllerBase
 
     protected function prepareHostSummariesQuery($varname)
     {
-        $db = $this->db();
+        $db = $this->idoDb();
         return $db->select()->from(
             ['h' => 'icinga_hosts'],
             []
@@ -158,7 +158,7 @@ class ConsoleController extends ControllerBase
 
     protected function prepareServiceSummariesQuery($varname)
     {
-        $db = $this->db();
+        $db = $this->idoDb();
         return $db->select()->from(
             ['h' => 'icinga_hosts'],
             []

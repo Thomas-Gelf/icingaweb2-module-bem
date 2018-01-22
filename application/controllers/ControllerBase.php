@@ -9,7 +9,7 @@ use dipl\Web\CompatController;
 class ControllerBase extends CompatController
 {
     /** @var \Zend_Db_Adapter_Abstract */
-    private $db;
+    private $idoDb;
 
     /** @var Cell */
     private $cell;
@@ -17,13 +17,13 @@ class ControllerBase extends CompatController
     /**
      * @return \Zend_Db_Adapter_Abstract
      */
-    protected function db()
+    protected function idoDb()
     {
-        if ($this->db === null) {
-            $this->db = $this->requireCell()->getIdo()->getDb();
+        if ($this->idoDb === null) {
+            $this->idoDb = $this->requireCell()->getIdo()->getDb();
         }
 
-        return $this->db;
+        return $this->idoDb;
     }
 
     protected function requireCell()

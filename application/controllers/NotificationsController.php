@@ -14,7 +14,7 @@ class NotificationsController extends ControllerBase
     public function indexAction()
     {
         $this->addTitle($this->translate('Problems for BEM'));
-        $table = (new ProblemsTable($this->db()))
+        $table = (new ProblemsTable($this->idoDb()))
             ->setCell($this->requireCell());
         $table->renderTo($this);
     }
@@ -23,7 +23,7 @@ class NotificationsController extends ControllerBase
     {
         $this->addTitle($this->translate('Hosts and Services for BEM'));
 
-        $table = (new ProblemsTable($this->db()))
+        $table = (new ProblemsTable($this->idoDb()))
             ->setCell($this->requireCell());
         $table->showOnlyProblems(false)->renderTo($this);
     }
