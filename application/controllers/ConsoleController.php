@@ -17,7 +17,7 @@ class ConsoleController extends ControllerBase
 
         $summaries = [];
         $varnames = [
-            'environment'   => 'ENVIRONMENT',
+            'environment'      => 'ENVIRONMENT',
             'bmc_object_class' => 'TEAM',
             'contact_team'     => 'OS',
         ];
