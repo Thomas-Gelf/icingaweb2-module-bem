@@ -21,6 +21,9 @@ class CellConfig
     /** @var array */
     private $optionalVars;
 
+    /** @var BlackAndWhitelist */
+    private $blackAndWhiteList;
+
     /**
      * BmcCell constructor.
      * @param Config $config
@@ -28,11 +31,17 @@ class CellConfig
     public function __construct(Config $config)
     {
         $this->config = $config;
+        $this->blackAndWhiteList = new BlackAndWhitelist($this);
     }
 
     public static function loadByName($name)
     {
         return new static(Config::module('bem', "cells/$name"));
+    }
+
+    public function wants($object)
+    {
+        return $this->blackAndWhiteList->wants($object);
     }
 
     public function getUsedVarNames()
@@ -65,7 +74,7 @@ class CellConfig
     {
         if ($this->params === null) {
             $this->params = [];
-            foreach ($this->config->getSection('params') as $key => $value) {
+            foreach ($this->config->getSection('msend_params') as $key => $value) {
                 $this->params[$key] = $value;
             }
         }
@@ -82,11 +91,88 @@ class CellConfig
         }
     }
 
+    public function fillParams($object)
+    {
+        $params = $this->getConfiguredParams();
+        foreach ($params as $key => $value) {
+            $params[$key] = $this->fillPlaceholders($value, $object);
+        }
+
+        return $params;
+    }
+
+    protected function fillPlaceholders($value, $object)
+    {
+        return preg_replace_callback(
+            '/{([^}]+)}/',
+            function ($match) use ($object) {
+                return $this->fillPlaceholder($match, $object);
+            },
+            $value
+        );
+    }
+
+    protected function stripDomainModifier($value)
+    {
+        return preg_replace('/\..*/', '', $value);
+    }
+
+    protected function fillPlaceholder($match, $object)
+    {
+        $value = $match[1];
+        $parts = explode('|', $value);
+
+        while (! empty($parts)) {
+            $part = array_shift($parts);
+            $value = $this->evaluatePlaceholder($part, $object);
+
+            if ($value !== null) {
+                return $value;
+            }
+        }
+
+        return null;
+    }
+
+    protected function evaluatePlaceholder($value, $object)
+    {
+        if ($value === 'object:getLink') {
+            $urlHelper = new IcingaWebUrlHelper($this);
+
+            return $urlHelper->getObjectUrl($object->host_name, $object->service_name);
+        }
+
+        $modifiers = explode(':', $value);
+        $value = array_shift($modifiers);
+
+        if (preg_match("/^'(.*)'$/", $value, $match)) {
+            $value = $match[1];
+        } elseif (preg_match('/^\d*$/', $value, $match)) {
+            // Number or nothing, keep as is
+        } elseif (property_exists($object, $value)) {
+            $value = $object->$value;
+        } else {
+            return null;
+        }
+
+        foreach ($modifiers as $modifier) {
+            $function = "${modifier}Modifier";
+            if (method_exists($this, $function)) {
+                $value = $this->$function($value);
+            } else {
+                $value .= ":$modifier";
+            }
+        }
+
+        return $value;
+    }
+
     protected function extractAllVarNames()
     {
         $varMap = [];
         $this->requiredVars = [];
         $this->optionalVars = [];
+
         foreach ($this->getConfiguredParams() as $key => $value) {
             $vars = $this->extractVarnamesFromString($value);
             if (! empty($vars)) {
@@ -139,13 +225,18 @@ class CellConfig
 
     protected function stringBeginsLikeVar($string)
     {
-        return preg_match('/^(?:host|service)\.vars\./', $string);
+        return preg_match('/^(?:host|service|object)\.vars\./', $string);
     }
 
     protected function requireVarMap()
     {
         if ($this->varMap === null) {
             $this->extractAllVarNames();
+            foreach ($this->blackAndWhiteList->listFilterColumns() as $column) {
+                if ($this->stringBeginsLikeVar($column)) {
+                    $this->optionalVars[$column] = $column;
+                }
+            }
         }
     }
 
@@ -155,5 +246,13 @@ class CellConfig
     public function get($section, $key, $default = null)
     {
         return $this->config->get($section, $key, $default);
+    }
+
+    /**
+     * @see Config::getSection()
+     */
+    public function getSection($name)
+    {
+        return $this->config->getSection($name);
     }
 }
