@@ -63,6 +63,25 @@ Sample Cell: "integration"
 Let's immagine you're running a dedicated BMC ProactiveNet Event Manager installation
 for `integration` testing. That system makes a perfect candidate for our first setup.
 
+### /etc/icingaweb2/modules/bem/maps.ini
+```ini
+[host_states]
+UP = OK
+DOWN = CRITICAL
+UNREACHABLE = MINOR
+
+[service_states]
+OK = OK
+WARNING = MINOR
+UNKNOWN = MAJOR
+CRITICAL = CRITICAL
+
+[downgrade]
+CRITICAL = WARNING
+MINOR = WARNING
+MAJOR = WARNING
+```
+
 ### /etc/icingaweb2/modules/bem/cells/integration.ini
 ```ini
 [main]
@@ -94,6 +113,26 @@ mc_timeout = "{host.vars.bmc_timeout|7200}"
 mc_priority = "{host.vars.priority}"
 ; custom_os = "{host.vars.contact_team}"
 ; custom_contact = "{host.vars.contact_team}"
+
+[whitelist]
+filter1 = "host.vars.priority&host.vars.priority<5"
+
+[blacklist]
+filter1 = "object_type=service&(host.vars.priority>=3|host.vars.priority<=5)"
+filter2 = "host.vars.cmdb_state=end*"
+filter3 = "host.vars.monitored_by_icinga1"
+
+[msend_modifiers.Transform Host States]
+map = host_states
+filter = "object_type=host"
+
+[msend_modifiers.Transform Service States]
+map = service_states
+filter = "object_type=service"
+
+[msend_modifiers.Downgrade unused and maintenance hosts]
+map = downgrade
+filter = "host.vars.cmdb_state!=in use|host.vars.maintenance"
 ```
 
 Let's explain the various settings. Configuration consists of two sections,
