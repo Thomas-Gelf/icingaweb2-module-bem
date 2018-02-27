@@ -17,6 +17,8 @@ trait PosixExitCodes
         129 => 'Terminated. Got SIGHUP (Hangup)',
         130 => 'Terminated. Got SIGINT (Terminal interrupt signal, Control-C)',
         131 => 'Terminated (core dump). Got SIGQUIT (Terminal interrupt signal, Control-C)',
+        143 => 'Terminated. Got SIGTERM',
+
         255 => 'Exit status out of range',
     ];
 
@@ -36,7 +38,7 @@ trait PosixExitCodes
             );
         }
 
-        if ((int) $code < 64 || (int) $code > 78) {
+        if (! $this->isPosixExitCode($code)) {
             throw new IcingaException(
                 '"%s" is not a well known POSIX exit code',
                 $code
