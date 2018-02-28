@@ -3,6 +3,7 @@
 namespace Icinga\Module\Bem\Clicommands;
 
 use Icinga\Cli\Command;
+use Icinga\Module\Bem\IdoDb;
 use Icinga\Module\Bem\MainRunner;
 
 class EventCommand extends Command
@@ -15,22 +16,25 @@ class EventCommand extends Command
 
     public function senderAction()
     {
-        $this->getNewRunner()->run();
+        $this->getRunner()->run();
     }
 
     public function sendAction()
     {
-        $this->getNewRunner()->runOnceFor(
+        $ido = IdoDb::fromMonitoringModule();
+
+        $object = $ido->fetchObject(
             $this->params->getRequired('host'),
-            $service = $this->params->get('service')
+            $this->params->get('service')
         );
+        $this->getRunner()->runOnceFor($object);
     }
 
     /**
      * @return MainRunner
      */
-    protected function getNewRunner()
+    protected function getRunner()
     {
-        return new MainRunner($this->params->get('cell'));
+        return new MainRunner($this->params->getRequired('cell'));
     }
 }
