@@ -2,7 +2,7 @@
 
 namespace Icinga\Module\Bem\Controllers;
 
-use Icinga\Module\Bem\IdoProblemsTable;
+use Icinga\Module\Bem\BemIssueTable;
 
 class NotificationsController extends ControllerBase
 {
@@ -13,30 +13,19 @@ class NotificationsController extends ControllerBase
 
     public function indexAction()
     {
-        $this->addTitle($this->translate('Problems for BEM'));
-        (new IdoProblemsTable($this->idoDb()))
-            ->setCell($this->requireCell())
-            ->renderTo($this);
-    }
+        $this->addTitle($this->translate('Notifications that have been sent'));
 
-    public function allAction()
-    {
-        $this->addTitle($this->translate('Hosts and Services for BEM'));
-
-        (new IdoProblemsTable($this->idoDb()))
-            ->setCell($this->requireCell())
-            ->showOnlyProblems(false)
-            ->renderTo($this);
+        (BemIssueTable::forCell($this->requireCell()))->renderTo($this);
     }
 
     protected function prepareTabs()
     {
-        $this->tabs()->add('index', [
-            'label' => $this->translate('Problems'),
+        $this->tabs()->add('issues', [
+            'label' => $this->translate('Current Issues'),
+            'url'   => 'bem/issues'
+        ])->add('notifications', [
+            'label' => $this->translate('Sent Notifications'),
             'url'   => 'bem/notifications'
-        ])->add('all', [
-            'label' => $this->translate('All Objects'),
-            'url'   => 'bem/notifications/all'
-        ])->activate($this->getRequest()->getActionName());
+        ])->activate($this->getRequest()->getControllerName());
     }
 }
