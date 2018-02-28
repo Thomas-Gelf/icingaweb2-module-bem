@@ -48,55 +48,45 @@ class ImpactPoster
         // TODO: msend -l (home) -z
     }
 
-    public function send(Event $event, $then, LoopInterface $loop = null)
+    public function send(BemNotification $notification, LoopInterface $loop = null)
     {
-        $event->resetRunStatus();
-        $cmd = 'exec ' . $this->getCommandString($event);
-        $cmd = 'exec sleep 100';
+        $resultHandler = new ImpactPosterResultHandler($notification);
+        $cmd = $this->getCommandString($notification);
+        // $cmd = 'exec sleep 100';
         // $cmd = 'exec /tmp';
 
-        $event->setLastCmdLine($cmd);
-        $mSend = new Process($cmd);
+        $notification->set('command_line', $cmd);
+        $mSend = new Process("exec $cmd");
         if ($loop === null) {
             Logger::info('Creating inner loop');
             $myLoop = Factory::create();
         } else {
             $myLoop = $loop;
         }
+        $resultHandler->start($cmd);
         $mSend->start($myLoop);
 
-        $mSend->stdout->on('data', function ($out) use ($event) {
-            $event->addOutput($out);
+        $mSend->stdout->on('data', function ($out) use ($resultHandler) {
+            $resultHandler->addOutput($out);
         });
-        $mSend->stderr->on('data', function ($out) use ($event) {
-            $event->addOutput($out);
+        $mSend->stderr->on('data', function ($out) use ($resultHandler) {
+            $resultHandler->addOutput($out);
         });
 
         $timer = $myLoop->addTimer(10, function () use ($mSend) {
             $mSend->terminate();
         });
-        $mSend->on('exit', function ($exitCode, $termSignal) use ($then, $event, $timer) {
+        $mSend->on('exit', function ($exitCode, $termSignal) use ($resultHandler, $timer) {
             $timer->cancel();
-            if ($exitCode === null) {
-                if ($termSignal === null) {
-                    $event->setLastExitCode(255);
-                } else {
-                    $event->setLastExitCode(128 + $termSignal);
-                }
-            } else {
-                $event->setLastExitCode((int) $exitCode);
-            }
-
-            $then($event);
+            $resultHandler->stop($exitCode, $termSignal);
         });
-        $mSend->on('error', function (Exception $e) use ($then, $event) {
-            $event->addOutput(
+        $mSend->on('error', function (Exception $e) use ($resultHandler) {
+            $resultHandler->addOutput(
                 $e->getMessage()
                 . "\n"
                 . $e->getTraceAsString()
             );
-            $event->setLastExitCode(255);
-            $then($event);
+            $resultHandler->stop(255, null);
         });
 
         if ($loop === null) {
@@ -106,11 +96,11 @@ class ImpactPoster
         return $this;
     }
 
-    public function getParameters(Event $event)
+    public function buildParameters(BemNotification $notification)
     {
         // [bmcdocs]/Event+management+common+command+options
         // [bmcdocs]/mposter+and+msend+syntax
-        return array(
+        return [
             // Configuration file to use (etc/mclient.conf)
             '-c' => $this->getConfigFilePath(),
             // Connects to this cell, either as defined in mcell.dir and referenced
@@ -118,25 +108,35 @@ class ImpactPoster
             '-n' => $this->getCellName(),
             // Sets the event severity value to the Severity specified
             // For example: -r WARNING or -r CRITICAL
-            '-r' => $event->getSeverity(),
+            '-r' => $notification->get('severity'),
             // Send an object of this class
             '-a' => $this->getObjectClass(),
             // Adds SlotSetValue settings (format: "slot=value;...")
             // For example,-b "msg='this is a test';mc_tool=computer;"
-            '-b' => $this->getEscapedSlotSetValues($event),
+            '-b' => $this->getSlotSetValueString($notification),
             // milliseconds to wait for message answer (default is 30,000)
             '-w' => 5000,
             // Verbose. We use this to get the Event ID
             // Output would show a line like: Message #1 - Evtid = 10308244
             '-v',
             // Be "quiet", show no banner. This still respects -v
-            '-q'
-        );
+            '-q',
+        ];
     }
 
-    public function getEscapedSlotSetValues(Event $event)
+    public function getSlotSetValueString(BemNotification $notification)
     {
-        return escapeshellarg($event->getEscapedParameters());
+        $params = array();
+        foreach ($notification->getSlotSetValues() as $key => $v) {
+            if (preg_match('/^[a-z0-9_]+$/i', $v)) {
+                $value = $v;
+            } else {
+                $value = escapeshellarg($v);
+            }
+            $params[] = "$key=" . $value;
+        }
+
+        return implode(';', $params);
     }
 
     public function getObjectClass()
@@ -171,37 +171,37 @@ class ImpactPoster
 
     public function getCommandPath()
     {
-        return escapeshellarg($this->getPrefixDir('bin/msend'));
+        return $this->getPrefixDir('bin/msend');
     }
 
     public function getConfigFilePath()
     {
-        return escapeshellarg($this->getPrefixDir('etc/mclient.conf'));
+        return $this->getPrefixDir('etc/mclient.conf');
     }
 
-    public function getCommandString(Event $event)
+    public function getCommandString(BemNotification $notification)
     {
-        return implode(' ', $this->getCommandAsArray($event));
+        return implode(' ', $this->getCommandAsArray($notification));
     }
 
-    public function getFlatArguments(Event $event)
-    {
-        $flat = array();
-        foreach ($this->getParameters($event) as $k => $v) {
-            if (! is_int($k)) {
-                $flat[] = $k;
-            }
-            $flat[] = $v;
-        }
-
-        return $flat;
-    }
-
-    public function getCommandAsArray(Event $event)
+    public function getCommandAsArray(BemNotification $notification)
     {
         return array_merge(
             array($this->getCommandPath()),
-            $this->getFlatArguments($event)
+            $this->getFlatArguments($notification)
         );
+    }
+
+    public function getFlatArguments(BemNotification $notification)
+    {
+        $flat = array();
+        foreach ($this->buildParameters($notification) as $k => $v) {
+            if (! is_int($k)) {
+                $flat[] = $k;
+            }
+            $flat[] = escapeshellarg($v);
+        }
+
+        return $flat;
     }
 }
