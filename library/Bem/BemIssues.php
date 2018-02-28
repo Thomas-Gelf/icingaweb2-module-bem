@@ -3,7 +3,6 @@
 namespace Icinga\Module\Bem;
 
 use Zend_Db_Adapter_Abstract as DbAdapter;
-use Zend_Db_Expr as DbExpr;
 
 /**
  * Class Issues
@@ -48,87 +47,7 @@ class BemIssues
     }
 
     /**
-     * @param Event $event
-     */
-    public function persistEventResult(Event $event)
-    {
-        if ($this->hasIssue($event->getObjectChecksum())) {
-            $this->updateIssueFromEvent($event);
-        } else {
-            $this->createIssueFromEvent($event);
-        }
-
-        $this->logEvent($event);
-    }
-
-    protected function logEvent(Event $event)
-    {
-        $this->db()->insert('bem_notification_log', [
-            'ci_name_checksum'  => $event->getObjectChecksum(),
-            'notification_time' => time() * 1000,// time from Event,
-            'exit_code'         => $event->getLastExitCode(),
-            'command_line'      => $event->getLastCmdLine(),
-            'output'            => $event->getLastOutput(),
-        ]);
-    }
-
-    public function discardEvent(Event $event)
-    {
-        $this->db()->delete($this->getTableName(), $this->whereEvent($event));
-        $this->issueCacheRemove($event->getObjectChecksum());
-    }
-
-    /**
-     * @param Event $event
-     */
-    protected function createIssueFromEvent(Event $event)
-    {
-        $now = time();
-        $props = [
-            'checksum'           => $event->getObjectChecksum(),
-            'bem_event_id'       => $event->getId(),
-            'host'               => $event->getHostName(),
-            'service'            => $event->getServiceName(),
-            'last_priority'      => $event->getPriority(),
-            'last_severity'      => $event->getSeverity(),
-            'first_notification' => $now,
-            'last_notification'  => $now,
-            'next_notification'  => $now + $this->getResendInterval(),
-            'cnt_notifications'  => 1,
-            'last_exit_code'     => $event->getLastExitCode(),
-            'last_cmdline'       => $event->getLastCmdLine(),
-            'last_output'        => $event->getLastOutput(),
-        ];
-
-        $this->db()->insert($this->getTableName(), $props);
-        $this->issueCacheInsert($props);
-    }
-
-    /**
-     * @param Event $event
-     */
-    protected function updateIssueFromEvent(Event $event)
-    {
-        $now = time();
-
-        $props = [
-            'bem_event_id'      => $event->getId(),
-            'last_priority'     => $event->getPriority(),
-            'last_severity'     => $event->getSeverity(),
-            'last_notification' => $now,
-            'next_notification' => $now + $this->getResendInterval(),
-            'cnt_notifications' => new DbExpr('cnt_notifications + 1'),
-            'last_exit_code'    => $event->getLastExitCode(),
-            'last_cmdline'      => $event->getLastCmdLine(),
-            'last_output'       => $event->getLastOutput(),
-        ];
-
-        $this->db()->update($this->getTableName(), $props, $this->whereEvent($event));
-        $this->issueCacheUpdate($event->getObjectChecksum(), $props);
-    }
-
-    /**
-     * @return |stdClass[]
+     * @return \stdClass[]
      */
     public function issues()
     {
@@ -159,6 +78,21 @@ class BemIssues
     }
 
     /**
+     * @return BemIssue[]
+     */
+    public function fetchOverdueIssues()
+    {
+        $now = Util::timestampWithMilliseconds();
+        $query = $this->db->select()
+            ->from('bem_issue')
+            ->where('ts_next_notification < ?', $now);
+
+
+        // TODO: create objects
+        return $this->db->fetchAll($query);
+    }
+
+    /**
      * Fetches all existing issues from our DB
      *
      * @return \stdClass[]
@@ -185,26 +119,6 @@ class BemIssues
     public function db()
     {
         return $this->db;
-    }
-
-    /**
-     * @return int
-     */
-    protected function getResendInterval()
-    {
-        return 300;
-    }
-
-    /**
-     * @param Event $event
-     * @return string
-     */
-    protected function whereEvent(Event $event)
-    {
-        return $this->db()->quoteInto(
-            'checksum = ?',
-            $event->getObjectChecksum()
-        );
     }
 
     /**
