@@ -10,7 +10,7 @@ use Zend_Db_Expr as DbExpr;
  *
  * Deals with refreshing/updating events in our DB
  */
-class Notifications
+class BemIssues
 {
     /** @var DbAdapter */
     private $db;
@@ -18,7 +18,7 @@ class Notifications
     /** @var \stdClass[] */
     private $issues;
 
-    /** @var string TODO: Rename to bem_notification? */
+    /** @var string */
     protected $tableName = 'bem_issue';
 
     /**
