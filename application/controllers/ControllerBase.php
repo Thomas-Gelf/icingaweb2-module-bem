@@ -5,6 +5,7 @@ namespace Icinga\Module\Bem\Controllers;
 use Icinga\Module\Bem\Cell;
 use Icinga\Module\Bem\Config;
 use dipl\Web\CompatController;
+use Icinga\Module\Bem\IdoDb;
 
 class ControllerBase extends CompatController
 {
@@ -20,7 +21,7 @@ class ControllerBase extends CompatController
     protected function idoDb()
     {
         if ($this->idoDb === null) {
-            $this->idoDb = $this->requireCell()->getIdo()->getDb();
+            $this->idoDb = IdoDb::fromMonitoringModule();
         }
 
         return $this->idoDb;
