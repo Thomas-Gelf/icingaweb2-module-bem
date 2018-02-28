@@ -7,7 +7,7 @@ use dipl\Html\Element;
 use dipl\Html\Link;
 use dipl\Web\Table\ZfQueryBasedTable;
 
-class ProblemsTable extends ZfQueryBasedTable
+class IdoProblemsTable extends ZfQueryBasedTable
 {
     private $lastHost;
 

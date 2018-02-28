@@ -2,7 +2,7 @@
 
 namespace Icinga\Module\Bem\Controllers;
 
-use Icinga\Module\Bem\ProblemsTable;
+use Icinga\Module\Bem\IdoProblemsTable;
 
 class NotificationsController extends ControllerBase
 {
@@ -14,18 +14,19 @@ class NotificationsController extends ControllerBase
     public function indexAction()
     {
         $this->addTitle($this->translate('Problems for BEM'));
-        $table = (new ProblemsTable($this->idoDb()))
-            ->setCell($this->requireCell());
-        $table->renderTo($this);
+        (new IdoProblemsTable($this->idoDb()))
+            ->setCell($this->requireCell())
+            ->renderTo($this);
     }
 
     public function allAction()
     {
         $this->addTitle($this->translate('Hosts and Services for BEM'));
 
-        $table = (new ProblemsTable($this->idoDb()))
-            ->setCell($this->requireCell());
-        $table->showOnlyProblems(false)->renderTo($this);
+        (new IdoProblemsTable($this->idoDb()))
+            ->setCell($this->requireCell())
+            ->showOnlyProblems(false)
+            ->renderTo($this);
     }
 
     protected function prepareTabs()
