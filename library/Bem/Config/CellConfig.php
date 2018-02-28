@@ -41,6 +41,7 @@ class CellConfig
     public function __construct(Config $config)
     {
         $this->config = $config;
+        // TODO: Fail with missing config.
         $this->triggerFreshConfig();
     }
 
@@ -67,9 +68,9 @@ class CellConfig
 
     protected function getConfigChecksumFromDisk()
     {
-        return sha1(
-            file_get_contents($this->config->getConfigFile())
-        );
+        $fileName = $this->config->getConfigFile();
+
+        return sha1(file_get_contents($fileName));
     }
 
     protected function triggerFreshConfig()
@@ -78,9 +79,12 @@ class CellConfig
 
         $this->blackAndWhiteList = new BlackAndWhitelist($this);
 
-        if ($this->db !== null) {
-            $this->db = null;
-        }
+        $this->db = null;
+        $this->impactPoster = null;
+        $this->params = null;
+        $this->optionalVars = null;
+        $this->requiredVars = null;
+        $this->varMap = null;
 
         $this->db = ResourceFactory::create(
             $this->config->get('main', 'db_resource')
