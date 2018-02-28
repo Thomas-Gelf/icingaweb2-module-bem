@@ -3,6 +3,8 @@
 namespace Icinga\Module\Bem\Config;
 
 use Icinga\Application\Config;
+use Icinga\Data\ResourceFactory;
+use Icinga\Module\Bem\ImpactPoster;
 
 class CellConfig
 {
@@ -24,6 +26,9 @@ class CellConfig
     /** @var BlackAndWhitelist */
     private $blackAndWhiteList;
 
+    /** @var \Zend_Db_Adapter_Abstract */
+    private $db;
+
     /**
      * BmcCell constructor.
      * @param Config $config
@@ -32,6 +37,9 @@ class CellConfig
     {
         $this->config = $config;
         $this->blackAndWhiteList = new BlackAndWhitelist($this);
+        $this->db = ResourceFactory::create(
+            $this->config->get('main', 'db_resource')
+        )->getDbAdapter();
     }
 
     public static function loadByName($name)
@@ -238,6 +246,20 @@ class CellConfig
                 }
             }
         }
+    }
+
+    public function db()
+    {
+        return $this->db;
+    }
+
+    public function getImpactPoster()
+    {
+        return new ImpactPoster(
+            $this->config->get('main', 'cell'),
+            $this->get('main', 'object_class', 'ICINGA'),
+            $this->get('main', 'prefix_dir', '/usr/local/msend')
+        );
     }
 
     /**
