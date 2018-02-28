@@ -2,6 +2,8 @@
 
 namespace Icinga\Module\Bem;
 
+use React\ChildProcess\Process;
+
 class ImpactPosterResultHandler
 {
     /** @var BemNotification */
@@ -20,13 +22,17 @@ class ImpactPosterResultHandler
     public function start($commandLine)
     {
         $this->startTime = Util::timestampWithMilliseconds();
-        $this->notification->set('command_line', $commandLine);
-        $this->notification->set('ts_notification', $this->startTime);
+        $this->notification
+            ->set('command_line', $commandLine)
+            ->set('system_user', posix_getpwnam(posix_getuid()))
+            ->set('system_host_name', gethostname());
     }
 
-    public function stop($exitCode, $termSignal)
+    public function stop($exitCode, $termSignal, Process $process)
     {
         $n = $this->notification;
+
+        $n->set('pid', $process->getPid());
         $n->set('duration_ms', $this->startTime - Util::timestampWithMilliseconds());
         if ($exitCode === null) {
             if ($termSignal === null) {
@@ -37,8 +43,21 @@ class ImpactPosterResultHandler
         } else {
             $n->set('exit_code', (int) $exitCode);
         }
+        $n->set('output', $this->outputBuffer);
+        $n->set('bem_event_id', $this->extractEventId());
 
         $n->storeToLog();
+    }
+
+    public function extractEventId()
+    {
+        // TODO: figure out how whether we could benefit from this while streaming
+        // to msend's STDIN
+        if (preg_match('/Message #(\d+) - Evtid = (\d+)/', $this->outputBuffer, $match)) {
+            return $match[2];
+        } else {
+            return null;
+        }
     }
 
     /**
