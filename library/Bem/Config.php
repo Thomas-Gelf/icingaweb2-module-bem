@@ -3,7 +3,6 @@
 namespace Icinga\Module\Bem;
 
 use DirectoryIterator;
-use Icinga\Application\Config as IcingaConfig;
 use Icinga\Application\Icinga;
 use Icinga\Exception\ConfigurationError;
 
@@ -22,27 +21,6 @@ class Config
         }
 
         return array_shift($cells);
-    }
-
-    /**
-     * @param $name
-     * @param bool $required
-     * @return Cell|null
-     * @throws ConfigurationError
-     */
-    public function getCell($name, $required = true)
-    {
-        $cells = $this->enumConfiguredCells();
-        if (array_key_exists($name, $cells)) {
-            return new Cell(IcingaConfig::module('bem', "cells/$name"));
-        } elseif ($required) {
-            throw new ConfigurationError(
-                'Trying to load cell configuration for %s, but found no such',
-                $name
-            );
-        } else {
-            return null;
-        }
     }
 
     /**
