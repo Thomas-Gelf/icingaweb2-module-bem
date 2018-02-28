@@ -48,14 +48,17 @@ class IdoDb
         $query = $this->db->select()->from(
             ['ho' => 'icinga_objects'],
             [
-                'id'           => 'ho.object_id',
-                'host_name'    => 'ho.name1',
-                'service_name' => '(NULL)',
-                'state'        => 'hs.current_state',
-                'hard_state'   => 'CASE WHEN hs.has_been_checked = 0 OR hs.has_been_checked IS NULL THEN 99'
-                                . ' ELSE CASE WHEN hs.state_type = 1 THEN hs.current_state'
-                                . ' ELSE hs.last_hard_state END END',
-                'output'       => 'hs.output',
+                'id'              => 'ho.object_id',
+                'host_name'       => 'ho.name1',
+                'service_name'    => '(NULL)',
+                'state_type'      => 'hs.state_type',
+                'state'           => 'hs.current_state',
+                'hard_state'      => 'CASE WHEN hs.has_been_checked = 0 OR hs.has_been_checked IS NULL THEN 99'
+                                   . ' ELSE CASE WHEN hs.state_type = 1 THEN hs.current_state'
+                                   . ' ELSE hs.last_hard_state END END',
+                'is_acknowledged' => 'hs.problem_has_been_acknowledged',
+                'is_in_downtime'  => 'CASE WHEN (hs.scheduled_downtime_depth = 0) THEN 0 ELSE 1 END',
+                'output'          => 'hs.output',
             ]
         )->join(
             ['hs' => 'icinga_hoststatus'],
@@ -76,10 +79,17 @@ class IdoDb
         $query = $this->db->select()->from(
             ['so' => 'icinga_objects'],
             [
-                'id'           => 'so.object_id',
-                'host_name'    => 'so.name1',
-                'service_name' => 'so.name2',
-                'state'        => 'ss.current_state',
+                'id'              => 'so.object_id',
+                'host_name'       => 'so.name1',
+                'service_name'    => 'so.name2',
+                'state_type'      => 'ss.state_type',
+                'state'           => 'ss.current_state',
+                'hard_state'      => 'CASE WHEN shs.has_been_checked = 0 OR ss.has_been_checked IS NULL THEN 99'
+                                   . ' ELSE CASE WHEN ss.state_type = 1 THEN ss.current_state'
+                                   . ' ELSE ss.last_hard_state END END',
+                'is_acknowledged' => 'ss.problem_has_been_acknowledged',
+                'is_in_downtime'  => 'CASE WHEN (ss.scheduled_downtime_depth = 0) THEN 0 ELSE 1 END',
+                'output'          => 'hs.output',
             ]
         )->join(
             ['ss' => 'icinga_servicestatus'],
