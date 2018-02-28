@@ -29,6 +29,11 @@ class CellConfig
     /** @var \Zend_Db_Adapter_Abstract */
     private $db;
 
+    /** @var ImpactPoster */
+    private $impactPoster;
+
+    private $configCheckSum;
+
     /**
      * BmcCell constructor.
      * @param Config $config
@@ -36,7 +41,47 @@ class CellConfig
     public function __construct(Config $config)
     {
         $this->config = $config;
+        $this->triggerFreshConfig();
+    }
+
+    protected function refreshConfig()
+    {
+        $this->config = Config::fromIni($this->config->getConfigFile());
+        $this->triggerFreshConfig();
+    }
+
+    public function checkForFreshConfig()
+    {
+        if ($this->configHasBeenChangedOnDisk()) {
+            $this->refreshConfig();
+            return true;
+        }
+
+        return false;
+    }
+
+    protected function configHasBeenChangedOnDisk()
+    {
+        return $this->getConfigChecksumFromDisk() !== $this->configCheckSum;
+    }
+
+    protected function getConfigChecksumFromDisk()
+    {
+        return sha1(
+            file_get_contents($this->config->getConfigFile())
+        );
+    }
+
+    protected function triggerFreshConfig()
+    {
+        $this->configCheckSum = $this->getConfigChecksumFromDisk();
+
         $this->blackAndWhiteList = new BlackAndWhitelist($this);
+
+        if ($this->db !== null) {
+            $this->db = null;
+        }
+
         $this->db = ResourceFactory::create(
             $this->config->get('main', 'db_resource')
         )->getDbAdapter();
@@ -255,11 +300,15 @@ class CellConfig
 
     public function getImpactPoster()
     {
-        return new ImpactPoster(
-            $this->config->get('main', 'cell'),
-            $this->get('main', 'object_class', 'ICINGA'),
-            $this->get('main', 'prefix_dir', '/usr/local/msend')
-        );
+        if ($this->impactPoster === null) {
+            $this->impactPoster = new ImpactPoster(
+                $this->config->get('main', 'cell'),
+                $this->get('main', 'object_class', 'ICINGA'),
+                $this->get('main', 'prefix_dir', '/usr/local/msend')
+            );
+        }
+
+        return $this->impactPoster;
     }
 
     /**
