@@ -15,7 +15,7 @@ class Notifications
     /** @var DbAdapter */
     private $db;
 
-    /** @var |stdClass[] */
+    /** @var \stdClass[] */
     private $issues;
 
     /** @var string TODO: Rename to bem_notification? */
@@ -57,6 +57,19 @@ class Notifications
         } else {
             $this->createIssueFromEvent($event);
         }
+
+        $this->logEvent($event);
+    }
+
+    protected function logEvent(Event $event)
+    {
+        $this->db()->insert('bem_notification_log', [
+            'ci_name_checksum'  => $event->getObjectChecksum(),
+            'notification_time' => time() * 1000,// time from Event,
+            'exit_code'         => $event->getLastExitCode(),
+            'command_line'      => $event->getLastCmdLine(),
+            'output'            => $event->getLastOutput(),
+        ]);
     }
 
     public function discardEvent(Event $event)
@@ -141,6 +154,7 @@ class Notifications
     public function refreshIssues()
     {
         $this->issues = $this->fetchExistingIssues();
+
         return $this;
     }
 
@@ -151,14 +165,18 @@ class Notifications
      */
     public function fetchExistingIssues()
     {
-        $db = $this->db;
         $issues = [];
-        $rows = $db->fetchAll($db->select()->from($this->getTableName()));
+        $rows = $this->db->fetchAll($this->selectIssues());
         foreach ($rows as $row) {
             $issues[$row->checksum] = $row;
         }
 
         return $issues;
+    }
+
+    public function selectIssues()
+    {
+        return $this->db->select()->from($this->getTableName());
     }
 
     /**
