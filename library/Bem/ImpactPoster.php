@@ -197,10 +197,16 @@ class ImpactPoster
     {
         $flat = array();
         foreach ($this->buildParameters($notification) as $k => $v) {
-            if (! is_int($k)) {
+            if (is_int($k)) {
+                $flat[] = $v;
+            } else {
                 $flat[] = $k;
+                if (preg_match('/^[a-z0-9]+$/i', $v)) {
+                    $flat[] = $v;
+                } else {
+                    $flat[] = escapeshellarg($v);
+                }
             }
-            $flat[] = escapeshellarg($v);
         }
 
         return $flat;
