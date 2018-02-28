@@ -23,7 +23,6 @@ class BlackAndWhitelist
 
     public function wants($object)
     {
-        echo $this->getWhitelistFilter() . "\n";
         return $this->getWhitelistFilter()->matches($object)
             && ! $this->blacklists($object);
     }
