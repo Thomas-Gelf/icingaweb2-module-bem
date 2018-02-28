@@ -12,14 +12,6 @@ class Config
     /** @var string */
     protected $configDir;
 
-    /**
-     * @return IdoDb
-     */
-    public function getIdo()
-    {
-        return IdoDb::fromMonitoringModule();
-    }
-
     public function getDefaultCellName()
     {
         $cells = $this->enumConfiguredCells();
