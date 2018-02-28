@@ -2,9 +2,9 @@
 
 namespace Icinga\Module\Bem\Controllers;
 
-use Icinga\Module\Bem\Cell;
-use Icinga\Module\Bem\Config;
 use dipl\Web\CompatController;
+use Icinga\Module\Bem\Config;
+use Icinga\Module\Bem\Config\CellConfig;
 use Icinga\Module\Bem\IdoDb;
 
 class ControllerBase extends CompatController
@@ -12,7 +12,7 @@ class ControllerBase extends CompatController
     /** @var \Zend_Db_Adapter_Abstract */
     private $idoDb;
 
-    /** @var Cell */
+    /** @var CellConfig */
     private $cell;
 
     /**
@@ -30,14 +30,15 @@ class ControllerBase extends CompatController
     protected function requireCell()
     {
         if ($this->cell === null) {
-            $config = new Config();
-            $cell = $this->params->get('cell');
-            if ($cell === null) {
-                $cell = $config->getDefaultCellName();
-                $this->redirectNow($this->url()->with('cell', $cell));
+            $name = $this->params->get('cell');
+
+            if ($name === null) {
+                $config = new Config();
+                $name = $config->getDefaultCellName();
+                $this->redirectNow($this->url()->with('cell', $name));
             }
 
-            $this->cell = $config->getCell($cell);
+            $this->cell = CellConfig::loadByName($name);
         }
 
         return $this->cell;
