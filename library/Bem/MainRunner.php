@@ -3,74 +3,49 @@
 namespace Icinga\Module\Bem;
 
 use Icinga\Application\Logger;
+use Icinga\Module\Bem\Config\CellConfig;
 use React\EventLoop\Factory as Loop;
 use SplObjectStorage;
 
 class MainRunner
 {
-    private $maxParallel = 3;
+    private $maxParallel;
 
-    /** @var Config */
-    private $bem;
-
-    /** @var Cell */
+    /** @var CellConfig */
     protected $cell;
 
     /** @var Loop */
     private $loop;
 
+    /** @var string */
     protected $cellName;
 
     /** @var SplObjectStorage */
     protected $running;
 
+    /** @var BemNotification[] */
     protected $queue = [];
 
-    public function __construct($cellName = null)
+    protected $eventCounter = 0;
+
+    /** @var BemIssues */
+    protected $issues;
+
+    protected $stats = [
+        'ts_last_modification' => 0,
+    ];
+
+    public function __construct($cellName)
     {
         $this->running = new SplObjectStorage();
         $this->cellName = $cellName;
-        $this->getCell();
+        $this->cell = CellConfig::loadByName($cellName);
+        $this->reset();
     }
 
-    protected function getCell()
+    protected function enqueue(BemNotification $notification)
     {
-        if ($this->cell === null) {
-            $bem = $this->bem();
-            if ($this->cellName === null) {
-                $name = $bem->getDefaultCellName();
-            } else {
-                $name = $this->cellName;
-            }
-            $this->cell = $bem->getCell($name);
-        }
-
-        return $this->cell;
-    }
-
-    /**
-     * @return Config
-     */
-    protected function bem()
-    {
-        if ($this->bem === null) {
-            $this->bem = new Config();
-        }
-
-        return $this->bem;
-    }
-
-    protected function enqueue(Event $event)
-    {
-        $this->queue[] = $event;
-    }
-
-    /**
-     * @return ImpactPoster
-     */
-    protected function msend()
-    {
-        return $this->getCell()->msend();
+        $this->queue[] = $notification;
     }
 
     public function run()
@@ -83,44 +58,126 @@ class MainRunner
         $loop->addPeriodicTimer(0.1, function () {
             $this->runQueue();
         });
+        $loop->addPeriodicTimer(1, function () {
+            $this->updateStats();
+        });
+        $loop->addPeriodicTimer(60, function () {
+            $this->updateDbStats();
+        });
+        $loop->addPeriodicTimer(30, function () {
+            if ($this->cell->checkForFreshConfig()) {
+                $this->reset();
+            }
+        });
         $loop->run();
+    }
+
+    protected function reset()
+    {
+        $this->maxParallel = $this->cell->get('main', 'max_parallel_runners', 3);
+        $this->issues = new BemIssues($this->cell->db());
+        $this->loadStatsFromDb();
     }
 
     public function runOnceFor($host, $service = null)
     {
+        $object = IdoDb::fromMonitoringModule()->getStateRowFor($host, $service);
         $this->sendAndLogEvent(
-            Event::fromProblemQueryRow(
-                $this->getCell()->fetchSingleObject($host, $service)
-            )
+            BemNotification::forIcingaObject($object, $this->cell)
+        );
+    }
+
+    protected function updateStats()
+    {
+        $stats = [
+            'event_counter'          => $this->eventCounter,
+            'max_parallel_processes' => $this->maxParallel,
+            'running_processes'      => $this->running->count(),
+            'queue_size'             => count($this->queue),
+            'ts_last_modification'   => $this->stats['ts_last_modification'],
+        ];
+        Logger::info(
+            '%d/%d running, %d in queue',
+            $stats['running_processes'],
+            $stats['max_parallel_processes'],
+            $stats['queue_size']
+        );
+
+        if ($stats !== $this->stats) {
+            $stats['ts_last_modification'] = Util::timestampWithMilliseconds();
+            $this->stats = $stats;
+            if (array_key_exists('ts_last_update', $this->stats)) {
+                $this->updateDbStats();
+            } else {
+                $this->insertDbStats();
+            }
+        }
+    }
+
+    protected function loadStatsFromDb()
+    {
+        $db = $this->cell->db();
+        $stats = $db->fetchRow(
+            $db->select()->from('bem_cell_stats', [
+                'event_counter',
+                'max_parallel_processes',
+                'running_processes',
+                'queue_size',
+                'ts_last_modification',
+            ])->where('cell_name = ?', $this->cellName)
+        );
+
+        if (! empty($stats)) {
+            $this->stats = (array) $stats;
+            $this->eventCounter = $this->stats['event_counter'];
+        }
+
+        $this->updateStats();
+    }
+
+    protected function updateDbStats()
+    {
+        $db = $this->cell->db();
+        $db->update(
+            'bem_cell_stats',
+            $this->stats + [
+                'ts_last_update' => Util::timestampWithMilliseconds()
+            ],
+            $db->quoteInto('cell_name = ?', $this->cellName)
+        );
+    }
+
+    protected function insertDbStats()
+    {
+        $db = $this->cell->db();
+        $db->insert(
+            'bem_cell_stats',
+            $this->stats + [
+                'ts_last_update' => Util::timestampWithMilliseconds(),
+                'cell_name'      => $this->cellName,
+            ]
         );
     }
 
     protected function fillQueue()
     {
-        $cell = $this->getCell();
         if (! empty($this->queue)) {
             Logger::debug('Queue not empty, not fetching new tasks');
             return;
         }
 
-        foreach ($cell->fetchProblemEvents() as $row) {
-            $this->enqueue(Event::fromProblemQueryRow($row));
-        }
+        // TODO: evaluate whether we should sync Icinga Events
+        // foreach ($cell->fetchProblemEvents() as $row) {
+        //     $this->enqueue(BemNotification::fromProblemQueryRow($row));
+        // }
 
-        foreach ($cell->fetchOverDueEvents() as $event) {
-            $this->enqueue($event);
+        foreach ($this->issues->fetchOverdueIssues() as $issue) {
+            $this->enqueue(BemNotification::forIssue($issue));
         }
     }
 
     protected function runQueue()
     {
-        Logger::info(
-            '%d/%d running, %d in queue',
-            $this->running->count(),
-            $this->maxParallel,
-            count($this->queue)
-        );
-
         while (! $this->isRunQueueFull()) {
             $event = array_shift($this->queue);
             if ($event === null) {
@@ -137,28 +194,15 @@ class MainRunner
         return $this->running->count() < $this->maxParallel;
     }
 
-    protected function sendAndLogEvent(Event $event)
+    protected function sendAndLogEvent(BemNotification $notification)
     {
-        $poster = $this->msend();
-        Logger::debug("Sending event for %s\n", $event->getUniqueObjectName());
-        $poster->send($event, [$this, 'persistEventResult'], $this->loop);
+        $poster = $this->cell->getImpactPoster();
+        $poster->send($notification, $this->loop);
     }
 
-    public function persistEventResult(Event $event)
+    protected function issues()
     {
-        $issues = $this->cell->notifications();
-        $this->running->detach($event);
-        $issues->persistEventResult($event);
 
-        if ($event->hasBeenSent() && ! $event->isIssue()) {
-            $issues->discardEvent($event);
-        }
-    }
-
-    protected function forgetEverything()
-    {
-        $this->bem = null;
-        $this->cell = null;
     }
 
     protected function loop()
