@@ -102,7 +102,7 @@ class BemIssues
         $issues = [];
         $rows = $this->db->fetchAll($this->selectIssues());
         foreach ($rows as $row) {
-            $issues[$row->checksum] = $row;
+            $issues[$row->ci_name_checksum] = $row;
         }
 
         return $issues;
@@ -126,7 +126,7 @@ class BemIssues
      */
     protected function issueCacheInsert(array $props)
     {
-        $this->issues[$props['checksum']] = (object) $props;
+        $this->issues[$props['ci_name_checksum']] = (object) $props;
     }
 
     /**
