@@ -20,8 +20,10 @@ class QueryHelper
     {
         $hardState = 'CASE WHEN hs.state_type THEN hs.current_state'
             . ' ELSE hs.last_hard_state END';
+
         $serviceHardState = 'CASE WHEN ss.state_type THEN ss.current_state'
             . ' ELSE ss.last_hard_state END';
+
         return $this->db->select()->union([
             $this->getHostQuery()->where("$hardState > 0"),
             $this->getServiceQuery()->where("$serviceHardState > 0")
@@ -52,12 +54,13 @@ class QueryHelper
         return $query;
     }
 
-    protected function getHostQuery()
+    public function getHostQuery()
     {
         $hardState = 'CASE WHEN hs.state_type THEN hs.current_state'
             . ' ELSE hs.last_hard_state END';
+
         $query = $this->getBaseHostQuery()->columns([
-            'host_name'            => 'ho.name1 COLLATE latin1_general_ci',
+            'host_name'            => $this->eventuallyCollate('ho.name1'),
             'service_name'         => '(NULL)',
             'host_hard_state'      => "($hardState)",
             'host_acknowledged'    => $this->ackColumn('hs'),
@@ -87,15 +90,15 @@ class QueryHelper
         );
     }
 
-    protected function getServiceQuery()
+    public function getServiceQuery()
     {
         $hostHardState = 'CASE WHEN hs.state_type THEN hs.current_state'
             . ' ELSE hs.last_hard_state END';
         $serviceHardState = 'CASE WHEN ss.state_type THEN ss.current_state'
             . ' ELSE ss.last_hard_state END';
         $query = $this->getBaseServiceQuery()->columns([
-            'host_name'            => 'ho.name1 COLLATE latin1_general_ci',
-            'service_name'         => 'so.name2 COLLATE latin1_general_ci',
+            'host_name'            => $this->eventuallyCollate('ho.name1'),
+            'service_name'         => $this->eventuallyCollate('so.name2'),
             'host_hard_state'      => "($hostHardState)",
             'host_acknowledged'    => $this->ackColumn('hs'),
             'host_in_downtime'     => $this->downtimeColumn('hs'),
@@ -106,6 +109,11 @@ class QueryHelper
         ]);
 
         return $query;
+    }
+
+    protected function eventuallyCollate($column)
+    {
+        return "$column COLLATE latin1_general_ci";
     }
 
     protected function getBaseServiceQuery()
@@ -192,6 +200,7 @@ class QueryHelper
         if ($name === null) {
             list($type, $name) = $this->splitVarName($type);
         }
+
         return $this->addCustomVar($query, $type, $name, true);
     }
 
