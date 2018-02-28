@@ -2,8 +2,7 @@
 
 namespace Icinga\Module\Bem\Controllers;
 
-use dipl\Html\Html;
-use dipl\Web\Widget\NameValueTable;
+use Icinga\Module\Bem\Web\Widget\NotificationDetails;
 
 class NotificationController extends ControllerBase
 {
@@ -25,36 +24,7 @@ class NotificationController extends ControllerBase
 
         $this->addSingleTab($this->translate('Notification'));
         if ($notification) {
-            $details = new NameValueTable();
-            $details->addNameValueRow($this->translate('Host'), $host);
-
-            if ($service !== null) {
-                $details->addNameValueRow($this->translate('Service'), $service);
-            }
-            $details->addNameValuePairs([
-                $this->translate('Last priority') => $notification->last_priority,
-                $this->translate('Last severity') => $notification->last_severity,
-                $this->translate('Notifications') => $notification->cnt_notifications,
-                $this->translate('First notification') => $notification->first_notification,
-                $this->translate('Last notification') => $notification->last_notification,
-                $this->translate('Next notification') => $notification->next_notification,
-            ]);
-
-            if ($notification->last_cmdline !== null) {
-                $details->addNameValueRow(
-                    $this->translate('Last command-line'),
-                    Html::pre($notification->last_cmdline)
-                );
-
-                $exitCode = $notification->last_exit_code;
-                if ($exitCode !== null) {
-                    $exitCode = (int) $exitCode;
-                    $details->addNameValuePairs([
-                        $this->translate('Last exit code') => $exitCode,
-                        $this->translate('Last output') => Html::pre($notification->last_output),
-                    ]);
-                }
-            }
+            $details = new NotificationDetails($notification, $host, $service);
             $this->content()->add($details);
         } else {
             $this->content()->add('No issue found');
