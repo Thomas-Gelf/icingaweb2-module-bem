@@ -82,11 +82,11 @@ class CheckCommand extends Command
     protected function createPerformanceDataString(CellStats $stats)
     {
         return sprintf(
-            "|sent_events=%sc;pending_notifications=%d;running_processes=%d;0;%d\n",
-            $stats->get('event_counter'),
+            "|pending_notifications=%d running_processes=%d;;;0;%d sent_events=%sc\n",
             $stats->get('queue_size'),
             $stats->get('running_processes'),
-            $stats->get('max_parallel_processes')
+            $stats->get('max_parallel_processes'),
+            $stats->get('event_counter')
         );
     }
 }
