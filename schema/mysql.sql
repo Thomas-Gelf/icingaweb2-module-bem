@@ -45,9 +45,9 @@ CREATE TABLE bem_notification_log (
     'CRITICAL',
     'DOWN'
   ) NOT NULL,
-  slot_values TEXT NOT NULL,
+  slot_set_values TEXT NOT NULL,
   ts_notification BIGINT(20) NOT NULL, -- unix timestamp with ms
-  duration_ms INT(10) UNSIGNED NOT NULL,
+  duration_ms INT(10) NOT NULL,
   pid INT(10) UNSIGNED DEFAULT NULL,
   system_user VARCHAR(64) NOT NULL,
   system_host_name VARCHAR(255) NOT NULL,
