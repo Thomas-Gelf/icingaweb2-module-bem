@@ -71,7 +71,7 @@ class NotificationLogTable extends ZfQueryBasedTable
             Link::create(
                 $this->renderObjectName($row->host_name, $row->object_name),
                 'bem/notification',
-                ['id' => $row->id]
+                ['id' => $row->id, 'cell' => $this->cell->getName()]
             )
         ]);
     }
