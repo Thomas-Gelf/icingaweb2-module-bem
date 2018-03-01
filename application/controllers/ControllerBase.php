@@ -57,4 +57,28 @@ class ControllerBase extends CompatController
 
         return $this->cell;
     }
+
+    protected function runFailSafe($method)
+    {
+        try {
+            if (is_string($method)) {
+                $this->$method();
+            } else {
+                $method();
+            }
+        } catch (\Exception $e) {
+            $this->renderExceptionAndExit($e);
+        } catch (\Error $e) {
+            $this->renderExceptionAndExit($e);
+        }
+    }
+
+    protected function renderExceptionAndExit(\Exception $exception)
+    {
+        echo '<pre>';
+        echo $exception->getMessage();
+        echo $exception->getTraceAsString();
+        echo '<pre>';
+        exit;
+    }
 }
