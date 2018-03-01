@@ -5,6 +5,7 @@ namespace Icinga\Module\Bem\Web\Widget;
 use dipl\Html\Html;
 use dipl\Translation\TranslationHelper;
 use dipl\Web\Widget\NameValueTable;
+use Icinga\Module\Bem\BemNotification;
 use Icinga\Module\Bem\Process\ImpactPosterExitCodes;
 
 class NotificationDetails extends NameValueTable
@@ -17,11 +18,11 @@ class NotificationDetails extends NameValueTable
 
     protected $service;
 
-    public function __construct($notification, $host, $service = null)
+    public function __construct(BemNotification $notification)
     {
         $this->notification = $notification;
-        $this->host = $host;
-        $this->service = $service;
+        $this->host = $notification->get('host_name');
+        $this->service = $notification->get('object_name');
     }
 
     protected function assemble()
@@ -32,6 +33,7 @@ class NotificationDetails extends NameValueTable
         if ($this->service !== null) {
             $this->addNameValueRow($this->translate('Service'), $this->service);
         }
+        /*
         $this->addNameValuePairs([
             $this->translate('Last priority') => $n->last_priority,
             $this->translate('Last severity') => $n->last_severity,
@@ -40,28 +42,28 @@ class NotificationDetails extends NameValueTable
             $this->translate('Last notification') => $n->last_notification,
             $this->translate('Next notification') => $n->next_notification,
         ]);
-
+        */
         $exitCodeInfo = new ImpactPosterExitCodes();
-        if ($n->last_cmdline !== null) {
+        if ($n->get('command_line') !== null) {
             $this->addNameValueRow(
-                $this->translate('Last command-line'),
+                $this->translate('Command-line'),
                 Html::tag('pre', null, preg_replace(
                     '/\s(-[a-zA-Z])\s/',
-                    "\n\\1 ",
-                    $n->last_cmdline
+                    " \\\n\\1 ",
+                    $n->get('command_line')
                 ))
             );
 
-            $exitCode = $n->last_exit_code;
+            $exitCode = $n->get('exit_code');
             if ($exitCode !== null) {
                 $exitCode = (int) $exitCode;
                 $this->addNameValuePairs([
-                    $this->translate('Last exit code') => sprintf(
+                    $this->translate('Exit code') => sprintf(
                         '%d - %s',
                         $exitCode,
                         $exitCodeInfo->getExitCodeDescription($exitCode)
                     ),
-                    $this->translate('Last output') => Html::tag('pre', null, $n->last_output),
+                    $this->translate('Last output') => Html::tag('pre', null, $n->get('output')),
                 ]);
             }
         }
