@@ -38,7 +38,8 @@ class NotificationCommand extends Command
 
         if ($config->wants((object) $object)) {
             $poster = $config->getImpactPoster();
-            echo $poster->getCommandString($notification) . "\n";
+            echo "DEBUG: " . $poster->getCommandString($notification) . "\n";
+            $poster->send($notification);
         } else {
             echo "This is not a problem, might be cleared\n";
         }
