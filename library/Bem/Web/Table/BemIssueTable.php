@@ -1,6 +1,6 @@
 <?php
 
-namespace Icinga\Module\Bem;
+namespace Icinga\Module\Bem\Web\Table;
 
 use dipl\Html\Link;
 use dipl\Web\Table\ZfQueryBasedTable;
