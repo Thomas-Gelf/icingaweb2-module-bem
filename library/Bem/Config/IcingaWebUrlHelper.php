@@ -26,12 +26,12 @@ class IcingaWebUrlHelper
 
     public function getHostUrl($host)
     {
-        return $this->getIcingaWebUrl('monitoring/show/host', ['host' => $host]);
+        return $this->getIcingaWebUrl('monitoring/host/show', ['host' => $host]);
     }
 
     public function getServiceUrl($host, $service)
     {
-        return $this->getIcingaWebUrl('monitoring/show/host', [
+        return $this->getIcingaWebUrl('monitoring/service/show', [
             'host'    => $host,
             'service' => $service,
         ]);
