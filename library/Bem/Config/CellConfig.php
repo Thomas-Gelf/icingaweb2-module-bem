@@ -8,6 +8,9 @@ use Icinga\Module\Bem\ImpactPoster;
 
 class CellConfig
 {
+    /** @var string */
+    private $name;
+
     /** @var Config */
     private $config;
 
@@ -37,12 +40,27 @@ class CellConfig
     /**
      * BmcCell constructor.
      * @param Config $config
+     * @param string $name
      */
-    public function __construct(Config $config)
+    public function __construct(Config $config, $name)
     {
+        $this->name = $name;
         $this->config = $config;
         // TODO: Fail with missing config.
         $this->triggerFreshConfig();
+    }
+
+    /**
+     * @return string
+     */
+    public function getName()
+    {
+        return $this->name;
+    }
+
+    public function getMaxParallelRunners()
+    {
+        return (int) $this->config->get('main', 'max_parallel_runners', 3);
     }
 
     protected function refreshConfig()
@@ -93,7 +111,7 @@ class CellConfig
 
     public static function loadByName($name)
     {
-        return new static(Config::module('bem', "cells/$name"));
+        return new static(Config::module('bem', "cells/$name"), $name);
     }
 
     public function wants($object)
