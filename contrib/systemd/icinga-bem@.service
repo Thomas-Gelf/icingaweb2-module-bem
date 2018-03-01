@@ -5,9 +5,9 @@ Wants=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/icingacli bem config sync --cell "%i" --trace --verbose
+ExecStart=/usr/bin/icingacli bem daemon run --cell "%i" --verbose
 ; For debugging purposes:
-; ExecStart=/usr/bin/icingacli bem config sync --cell "%i" --trace --verbose
+; ExecStart=/usr/bin/icingacli bem daemon run --cell "%i" --trace --debug
 Restart=always
 RestartSec=5
 User=icingaweb2
