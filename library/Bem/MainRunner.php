@@ -52,6 +52,11 @@ class MainRunner
     {
         $loop = $this->loop = Loop::create();
 
+        $loop->nextTick(function () {
+            $this->runFailSafe(function () {
+                $this->stats->updateStats(true);
+            });
+        });
         $loop->addPeriodicTimer(0.5, function () {
             $this->runFailSafe(function () {
                 $this->fillQueue();
