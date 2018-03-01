@@ -56,7 +56,8 @@ class BemNotification
         $this->set('host_name', $params['mc_host']);
         $this->set('object_name', $params['mc_object']);
         $this->set('ci_name_checksum', sha1(
-            $this->get('host_name') . '!' . $this->get('object_name')
+            $this->get('host_name') . '!' . $this->get('object_name'),
+            true
         ));
 
         return $this;
