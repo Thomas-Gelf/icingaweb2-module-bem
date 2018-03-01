@@ -2,6 +2,7 @@
 
 namespace Icinga\Module\Bem\Clicommands;
 
+use Icinga\Date\DateFormatter;
 use Icinga\Module\Bem\CellStats;
 use Icinga\Module\Bem\Config\CellConfig;
 
@@ -16,13 +17,35 @@ class CheckCommand extends Command
     public function queueAction()
     {
         $cell = CellConfig::loadByName($this->params->shiftRequired('cell'));
-        $stats = new CellStats($cell);
+
+        try {
+            if (! CellStats::exist($cell)) {
+                printf(
+                    "%s BEM Cell '%s' has not stored any stats\n",
+                    $this->screen->colorize('[CRITICAL]', 'red'),
+                    $cell->getName()
+                );
+                exit(2);
+            }
+            $stats = new CellStats($cell, true);
+        } catch (\Exception $e) {
+            printf(
+                "%s Failed to get information for BEM Cell '%s': %s\n",
+                $this->screen->colorize('[CRITICAL]', 'red'),
+                $cell->getName(),
+
+                $e->getMessage()
+            );
+
+            exit(2);
+        }
+
         if ($stats->isOutdated()) {
             printf(
                 "%s BEM Cell '%s' hasn't been updated since %s\n",
                 $this->screen->colorize('[CRITICAL]', 'red'),
                 $cell->getName(),
-                $stats->get('ts_last_update')
+                DateFormatter::timeSince($stats->get('ts_last_update') / 1000, true)
             );
             exit(2);
         }
