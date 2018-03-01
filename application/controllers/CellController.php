@@ -4,6 +4,7 @@ namespace Icinga\Module\Bem\Controllers;
 
 use dipl\Html\Html;
 use dipl\Web\Widget\NameValueTable;
+use Icinga\Module\Bem\CellStats;
 use Icinga\Module\Bem\Config\CellConfig;
 
 class CellController extends ControllerBase
@@ -22,6 +23,8 @@ class CellController extends ControllerBase
         }
 
         $this->content()->add([
+            Html::tag('h2', null, $this->translate('Runner Health')),
+            $this->renderHealth($cell),
             Html::tag('h2', null, $this->translate('Slot Values')),
             $slotTable,
             Html::tag('h2', null, $this->translate('Used Params')),
@@ -31,6 +34,17 @@ class CellController extends ControllerBase
             Html::tag('h2', null, $this->translate('Blacklists')),
             $this->renderList($cell->getSection('blacklist')),
         ]);
+    }
+
+    protected function renderHealth(CellConfig $cell)
+    {
+        if (! CellStats::exist($cell)) {
+            return Html::tag(
+                'p',
+                ['class' => 'error'],
+                "This cell has not yet stored any stats, please check whether it's daemon is running"
+            );
+        }
     }
 
     protected function renderList($list)
