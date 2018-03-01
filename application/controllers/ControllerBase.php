@@ -73,7 +73,7 @@ class ControllerBase extends CompatController
         }
     }
 
-    protected function renderExceptionAndExit(\Exception $exception)
+    protected function renderExceptionAndExit($exception)
     {
         echo '<pre>';
         echo $exception->getMessage();
