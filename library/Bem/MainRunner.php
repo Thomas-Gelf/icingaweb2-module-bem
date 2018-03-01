@@ -9,6 +9,7 @@ use SplObjectStorage;
 
 class MainRunner
 {
+    /** @var int */
     private $maxParallel;
 
     /** @var CellConfig */
@@ -26,14 +27,13 @@ class MainRunner
     /** @var BemNotification[] */
     protected $queue = [];
 
-    protected $eventCounter = 0;
-
     /** @var BemIssues */
     protected $issues;
 
-    protected $stats = [
-        'ts_last_modification' => 0,
-    ];
+    /** @var CellStats */
+    protected $stats;
+
+    private $isReady = false;
 
     public function __construct($cellName)
     {
@@ -53,110 +53,56 @@ class MainRunner
         $loop = $this->loop = Loop::create();
 
         $loop->addPeriodicTimer(0.5, function () {
-            $this->fillQueue();
+            $this->runFailSafe(function () {
+                $this->fillQueue();
+            });
         });
         $loop->addPeriodicTimer(0.1, function () {
+            // runQueue() is fail-safe
             $this->runQueue();
         });
         $loop->addPeriodicTimer(1, function () {
-            $this->updateStats();
+            $this->runFailSafe(function () {
+                $this->stats->updateStats();
+            });
         });
         $loop->addPeriodicTimer(60, function () {
-            $this->updateDbStats();
+            $this->runFailSafe(function () {
+                $this->stats->updateStats(true);
+            });
         });
-        $loop->addPeriodicTimer(30, function () {
-            if ($this->cell->checkForFreshConfig()) {
+        $loop->addPeriodicTimer(15, function () {
+            if (! $this->isReady) {
                 $this->reset();
             }
+        });
+        $loop->addPeriodicTimer(10, function () {
+            $this->runFailSafe(function () {
+                if ($this->cell->checkForFreshConfig()) {
+                    $this->reset();
+                }
+            });
         });
         $loop->run();
     }
 
     protected function reset()
     {
-        $this->maxParallel = $this->cell->get('main', 'max_parallel_runners', 3);
-        $this->issues = new BemIssues($this->cell->db());
-        $this->loadStatsFromDb();
-    }
-
-    public function runOnceFor($host, $service = null)
-    {
-        $object = IdoDb::fromMonitoringModule()->getStateRowFor($host, $service);
-        $this->sendAndLogEvent(
-            BemNotification::forIcingaObject($object, $this->cell)
-        );
-    }
-
-    protected function updateStats()
-    {
-        $stats = [
-            'event_counter'          => $this->eventCounter,
-            'max_parallel_processes' => $this->maxParallel,
-            'running_processes'      => $this->running->count(),
-            'queue_size'             => count($this->queue),
-            'ts_last_modification'   => $this->stats['ts_last_modification'],
-        ];
-        Logger::info(
-            '%d/%d running, %d in queue',
-            $stats['running_processes'],
-            $stats['max_parallel_processes'],
-            $stats['queue_size']
-        );
-
-        if ($stats !== $this->stats) {
-            $stats['ts_last_modification'] = Util::timestampWithMilliseconds();
-            $this->stats = $stats;
-            if (array_key_exists('ts_last_update', $this->stats)) {
-                $this->updateDbStats();
-            } else {
-                $this->insertDbStats();
-            }
+        $this->isReady = false;
+        try {
+            Logger::info('Resetting BEM main runner for %s', $this->cellName);
+            $this->cell->db()->closeConnection();
+            $this->maxParallel = $this->cell->getMaxParallelRunners();
+            $this->issues = new BemIssues($this->cell->db());
+            $this->stats = new CellStats($this->cell);
+            $this->isReady = true;
+        } catch (\Exception $e) {
+            Logger::error(
+                'Failed to reset BEM main runner for %s: %s',
+                $this->cellName,
+                $e->getMessage()
+            );
         }
-    }
-
-    protected function loadStatsFromDb()
-    {
-        $db = $this->cell->db();
-        $stats = $db->fetchRow(
-            $db->select()->from('bem_cell_stats', [
-                'event_counter',
-                'max_parallel_processes',
-                'running_processes',
-                'queue_size',
-                'ts_last_modification',
-            ])->where('cell_name = ?', $this->cellName)
-        );
-
-        if (! empty($stats)) {
-            $this->stats = (array) $stats;
-            $this->eventCounter = $this->stats['event_counter'];
-        }
-
-        $this->updateStats();
-    }
-
-    protected function updateDbStats()
-    {
-        $db = $this->cell->db();
-        $db->update(
-            'bem_cell_stats',
-            $this->stats + [
-                'ts_last_update' => Util::timestampWithMilliseconds()
-            ],
-            $db->quoteInto('cell_name = ?', $this->cellName)
-        );
-    }
-
-    protected function insertDbStats()
-    {
-        $db = $this->cell->db();
-        $db->insert(
-            'bem_cell_stats',
-            $this->stats + [
-                'ts_last_update' => Util::timestampWithMilliseconds(),
-                'cell_name'      => $this->cellName,
-            ]
-        );
     }
 
     protected function fillQueue()
@@ -176,33 +122,54 @@ class MainRunner
         }
     }
 
+    protected function runFailSafe($method)
+    {
+        if (! $this->isReady) {
+            return;
+        }
+
+        try {
+            $method();
+        } catch (\Exception $e) {
+            Logger::error($e);
+            $this->reset();
+        }
+    }
+
     protected function runQueue()
     {
-        while (! $this->isRunQueueFull()) {
+        while ($this->isReady && ! $this->isRunQueueFull()) {
             $event = array_shift($this->queue);
             if ($event === null) {
                 return;
             }
 
             $this->running->attach($event);
-            $this->sendAndLogEvent($event);
+            $this->runFailSafe(function () use ($event) {
+                $this->sendAndLogEvent($event);
+            });
         }
     }
 
     protected function isRunQueueFull()
     {
-        return $this->running->count() < $this->maxParallel;
+        return $this->countRunningProcesses() < $this->maxParallel;
+    }
+
+    public function countRunningProcesses()
+    {
+        return $this->running->count();
     }
 
     protected function sendAndLogEvent(BemNotification $notification)
     {
         $poster = $this->cell->getImpactPoster();
+        $this->stats->updateRunQueue(
+            $this->countRunningProcesses(),
+            $this->maxParallel
+        );
+
         $poster->send($notification, $this->loop);
-    }
-
-    protected function issues()
-    {
-
     }
 
     protected function loop()
