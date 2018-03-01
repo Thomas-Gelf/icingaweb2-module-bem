@@ -2,6 +2,7 @@
 
 namespace Icinga\Module\Bem;
 
+use Icinga\Exception\NotFoundError;
 use Icinga\Module\Bem\Config\CellConfig;
 use Icinga\Module\Bem\Object\PropertyContainer;
 
@@ -31,9 +32,35 @@ class BemNotification
     /** @var CellConfig */
     private $cell;
 
+    private $id;
+
     protected function __construct(CellConfig $cell)
     {
         $this->cell = $cell;
+    }
+
+    public static function loadFromLog(CellConfig $cell, $id)
+    {
+        $object = new static($cell);
+        $db = $cell->db();
+        $result = $db->fetchRow(
+            $db->select()
+                ->from('bem_notification_log')
+                ->where('id = ?', $id)
+        );
+
+        if (! $result) {
+            throw new NotFoundError(
+                'Notification log entry %s not found',
+                $id
+            );
+        }
+        $object->id = $id;
+        unset($result->id);
+
+        $object->fillWithDefaultProperties();
+
+        return $object->setProperties($result);
     }
 
     public static function forIcingaObject($icingaObject, CellConfig $cell)
