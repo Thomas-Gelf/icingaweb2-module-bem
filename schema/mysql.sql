@@ -58,3 +58,14 @@ CREATE TABLE bem_notification_log (
   INDEX idx_search (ci_name_checksum),
   INDEX idx_name_search (host_name(64), object_name(64))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_bin;
+
+CREATE TABLE bem_cell_stats (
+  cell_name VARCHAR(64) NOT NULL,
+  event_counter BIGINT(20) UNSIGNED NOT NULL,
+  max_parallel_processes INT(10) UNSIGNED NOT NULL,
+  running_processes INT(10) UNSIGNED NOT NULL,
+  queue_size INT(10) UNSIGNED NOT NULL,
+  ts_last_modification BIGINT(20) NOT NULL,
+  ts_last_update BIGINT(20) NOT NULL,
+  PRIMARY KEY (cell_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_bin;
