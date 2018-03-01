@@ -17,6 +17,7 @@ trait PosixExitCodes
         129 => 'Terminated. Got SIGHUP (Hangup)',
         130 => 'Terminated. Got SIGINT (Terminal interrupt signal, Control-C)',
         131 => 'Terminated (core dump). Got SIGQUIT (Terminal interrupt signal, Control-C)',
+        137 => 'Terminated. Got SIGKILL',
         143 => 'Terminated. Got SIGTERM',
 
         255 => 'Exit status out of range',
