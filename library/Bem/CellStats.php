@@ -30,14 +30,9 @@ class CellStats
         $db = $cell->db();
 
         return $cell->getName() === $db->fetchOne(
-            $db->select()->from('bem_cell_stats', [
-                'event_counter',
-                'max_parallel_processes',
-                'running_processes',
-                'queue_size',
-                'ts_last_modification',
-                'ts_last_update',
-            ])->where('cell_name = ?', $cell->getName())
+            $db->select()
+                ->from('bem_cell_stats', 'cell_name')
+                ->where('cell_name = ?', $cell->getName())
         );
     }
 
