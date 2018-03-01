@@ -41,7 +41,7 @@ class ImpactPosterExitCodes
 
     public function getExitCodeDescription($code)
     {
-        if (in_array($code, static::$returnCodes)) {
+        if (array_key_exists($code, static::$returnCodes)) {
             return static::$returnCodes[$code];
         } elseif ($this->isPosixExitCode($code)) {
             return $this->getPosixExitCodeDescription($code);
