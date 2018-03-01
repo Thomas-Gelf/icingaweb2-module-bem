@@ -15,6 +15,20 @@ class ControllerBase extends CompatController
     /** @var CellConfig */
     private $cell;
 
+    protected function prepareTabs()
+    {
+        $this->tabs()->add('index', [
+            'label' => $this->translate('Configured Cells'),
+            'url'   => 'bem'
+        ])->add('issues', [
+            'label' => $this->translate('Current Issues'),
+            'url'   => 'bem/issues'
+        ])->add('notifications', [
+            'label' => $this->translate('Sent Notifications'),
+            'url'   => 'bem/notifications'
+        ])->activate($this->getRequest()->getControllerName());
+    }
+
     /**
      * @return \Zend_Db_Adapter_Abstract
      */
