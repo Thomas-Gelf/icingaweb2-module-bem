@@ -16,10 +16,29 @@ class CellStats
     /** @var CellConfig */
     protected $cell;
 
-    public function __construct(CellConfig $cell)
+    protected $readOnly;
+
+    public function __construct(CellConfig $cell, $readOnly = false)
     {
         $this->cell = $cell;
         $this->loadStatsFromDb();
+        $this->readOnly = $readOnly;
+    }
+
+    public static function exist(CellConfig $cell)
+    {
+        $db = $cell->db();
+
+        return $cell->getName() === $db->fetchOne(
+            $db->select()->from('bem_cell_stats', [
+                'event_counter',
+                'max_parallel_processes',
+                'running_processes',
+                'queue_size',
+                'ts_last_modification',
+                'ts_last_update',
+            ])->where('cell_name = ?', $cell->getName())
+        );
     }
 
     public function getEventCounter()
@@ -57,6 +76,10 @@ class CellStats
 
     public function updateStats($force = false)
     {
+        if ($this->readOnly) {
+            return;
+        }
+
         if ($this->storedStats === $this->stats) {
             if ($force) {
                 Logger::debug('Forced stats update');
@@ -125,7 +148,7 @@ class CellStats
             'running_processes'      => 0,
             'queue_size'             => 0,
             'max_parallel_processes' => $this->cell->getMaxParallelRunners(),
-            'ts_last_modification'   => Util::timestampWithMilliseconds(),
+            'ts_last_modification'   => 0
         ];
     }
 
