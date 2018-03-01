@@ -4,6 +4,7 @@ namespace Icinga\Module\Bem\Controllers;
 
 use dipl\Html\Table;
 use Icinga\Module\Bem\BemIssueTable;
+use Icinga\Module\Bem\Web\Table\NotificationLogTable;
 
 class NotificationsController extends ControllerBase
 {
@@ -17,7 +18,7 @@ class NotificationsController extends ControllerBase
         $this->addTitle($this->translate('Notifications that have been sent'));
 
         $table = new Table();
-        (BemIssueTable::forCell($this->requireCell()))->renderTo($this);
+        (NotificationLogTable::forCell($this->requireCell()))->renderTo($this);
         $this->content()->add($table);
     }
 }
