@@ -33,7 +33,8 @@ class ImpactPosterResultHandler
         $n = $this->notification;
 
         $n->set('pid', $process->getPid());
-        $n->set('duration_ms', $this->startTime - Util::timestampWithMilliseconds());
+        $n->set('ts_notification', $this->startTime);
+        $n->set('duration_ms', Util::timestampWithMilliseconds() - $this->startTime);
         if ($exitCode === null) {
             if ($termSignal === null) {
                 $n->set('exit_code', 255);
