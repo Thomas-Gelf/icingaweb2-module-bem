@@ -5,6 +5,7 @@ namespace Icinga\Module\Bem\Web\Table;
 use dipl\Html\Link;
 use dipl\Web\Table\ZfQueryBasedTable;
 use Icinga\Date\DateFormatter;
+use Icinga\Module\Bem\BemIssue;
 use Icinga\Module\Bem\Config\CellConfig;
 
 class NotificationLogTable extends ZfQueryBasedTable
@@ -20,18 +21,6 @@ class NotificationLogTable extends ZfQueryBasedTable
     protected $searchColumns = [
         'host_name',
         'service_name',
-    ];
-
-    private static $hostStateClass = [
-        0 => 'state-up',
-        1 => 'state-down',
-    ];
-
-    private static $serviceStateClass = [
-        0 => 'state-ok',
-        1 => 'state-warning',
-        2 => 'state-critical',
-        3 => 'state-unknown',
     ];
 
     /**
@@ -50,6 +39,16 @@ class NotificationLogTable extends ZfQueryBasedTable
         $this->cell = $cell;
 
         return $this;
+    }
+
+    /**
+     * Well... it's the CI, not the issue
+     *
+     * @param BemIssue $issue
+     */
+    public function filterIssue(BemIssue $issue)
+    {
+        $this->getQuery()->where('ci_name_checksum = ?', $issue->getKey());
     }
 
     protected function renderObjectName($host, $service = null)
@@ -78,13 +77,12 @@ class NotificationLogTable extends ZfQueryBasedTable
 
     protected function prepareQuery()
     {
-        return $this->cell->db()
-            ->select()
-            ->from('bem_notification_log', [
-                'id',
-                'ts_notification',
-                'host_name',
-                'object_name',
-            ])->order('ts_notification DESC');
+        return $this->cell->db()->select()->from('bem_notification_log', [
+            'id',
+            'ts_notification',
+            'host_name',
+            'object_name',
+            'severity',
+        ])->order('ts_notification DESC');
     }
 }
