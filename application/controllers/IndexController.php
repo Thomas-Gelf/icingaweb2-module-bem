@@ -16,6 +16,7 @@ class IndexController extends ControllerBase
 
     public function indexAction()
     {
+        $this->setAutorefreshInterval(10);
         $this->addTitle($this->translate('BEM - configured Cells'));
 
         $cellNames = (new Config())->enumConfiguredCells();

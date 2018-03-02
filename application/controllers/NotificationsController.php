@@ -13,6 +13,7 @@ class NotificationsController extends ControllerBase
 
     public function indexAction()
     {
+        $this->setAutorefreshInterval(10);
         $this->addTitle($this->translate('Notifications that have been sent'));
         NotificationLogTable::forCell($this->requireCell())->renderTo($this);
     }

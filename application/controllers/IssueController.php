@@ -2,6 +2,7 @@
 
 namespace Icinga\Module\Bem\Controllers;
 
+use dipl\Html\Html;
 use Icinga\Module\Bem\BemIssue;
 use Icinga\Module\Bem\Web\Table\NotificationLogTable;
 use Icinga\Module\Bem\Web\Widget\IssueDetails;
@@ -10,22 +11,29 @@ class IssueController extends ControllerBase
 {
     public function indexAction()
     {
-        $this->runFailSafe('in');
-    }
-    public function in()
-    {
+        $this->setAutorefreshInterval(10);
         $issue = $this->loadIssue();
+        $this->addIssueTabs($issue);
+        if (! $issue || $issue->get('host_name') === null) {
+            $this->content()->add(
+                Html::tag('p', ['class' => 'error'], $this->translate(
+                    'Issue not found, it might have recovered'
+                ))
+            );
+
+            return;
+        }
         $this->addTitle(
             '%s: %s',
             $issue->get('host_name'),
             $issue->get('object_name')
         );
-        $this->addIssueTabs($issue);
         $this->content()->add(new IssueDetails($issue));
     }
 
     public function notificationsAction()
     {
+        $this->setAutorefreshInterval(10);
         $issue = $this->loadIssue();
         $this->addTitle(
             'Notifications for %s: %s',
