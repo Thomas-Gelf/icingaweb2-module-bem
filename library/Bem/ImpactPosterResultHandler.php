@@ -9,14 +9,18 @@ class ImpactPosterResultHandler
     /** @var BemNotification */
     protected $notification;
 
+    /** @var BemIssue */
+    protected $issue;
+
     /** @var string */
     private $outputBuffer = '';
 
     private $startTime;
 
-    public function __construct(BemNotification $notification)
+    public function __construct(BemIssue $issue)
     {
-        $this->notification = $notification;
+        $this->issue = $issue;
+        $this->notification = BemNotification::forIssue($issue);
     }
 
     public function start($commandLine)
@@ -46,8 +50,22 @@ class ImpactPosterResultHandler
         }
         $n->set('output', $this->outputBuffer);
         $n->set('bem_event_id', $this->extractEventId());
-
         $n->storeToLog();
+        $this->updateIssue();
+    }
+
+    protected function updateIssue()
+    {
+        $i = $this->issue;
+        $count = $i->get('cnt_notifications');
+        $i->set('ts_last_notification', $this->startTime);
+        if ((int) $count === 0) {
+            $i->set('ts_first_notification', $this->startTime);
+        }
+
+        $i->set('cnt_notifications', $count + 1);
+        $i->set('ts_next_notification', $this->notification->calculateNextNotification());
+        $i->store();
     }
 
     public function extractEventId()
