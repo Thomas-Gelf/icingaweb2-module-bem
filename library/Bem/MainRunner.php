@@ -2,6 +2,7 @@
 
 namespace Icinga\Module\Bem;
 
+use Exception;
 use Icinga\Application\Logger;
 use Icinga\Module\Bem\Config\CellConfig;
 use React\EventLoop\Factory as Loop;
@@ -63,7 +64,7 @@ class MainRunner
             });
         });
         $loop->addPeriodicTimer(0.1, function () {
-            // runQueue() is fail-safe
+            // Hint: runQueue() is fail-safe
             $this->runQueue();
         });
         $loop->addPeriodicTimer(1, function () {
@@ -101,7 +102,7 @@ class MainRunner
             $this->issues = new BemIssues($this->cell->db());
             $this->stats = new CellStats($this->cell);
             $this->isReady = true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Logger::error(
                 'Failed to reset BEM main runner for %s: %s',
                 $this->cellName,
@@ -135,7 +136,7 @@ class MainRunner
 
         try {
             $method();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Logger::error($e);
             $this->reset();
         }
