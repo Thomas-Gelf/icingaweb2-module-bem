@@ -2,6 +2,7 @@
 
 namespace Icinga\Module\Bem;
 
+use Icinga\Module\Bem\Config\CellConfig;
 use Zend_Db_Adapter_Abstract as DbAdapter;
 
 /**
@@ -14,7 +15,9 @@ class BemIssues
     /** @var DbAdapter */
     private $db;
 
-    /** @var \stdClass[] */
+    protected $cell;
+
+    /** @var BemIssue[] */
     private $issues;
 
     /** @var string */
@@ -22,20 +25,12 @@ class BemIssues
 
     /**
      * BemIssues constructor.
-     * @param DbAdapter $db
+     * @param CellConfig $cell
      */
-    public function __construct(DbAdapter $db)
+    public function __construct(CellConfig $cell)
     {
-        $this->db = $db;
-    }
-
-    public function loadByChecksum($checksum)
-    {
-        return $this->db->fetchRow(
-            $this->db->select()
-                ->from($this->tableName)
-                ->where('checksum = ?', $checksum)
-        );
+        $this->cell = $cell;
+        $this->db = $cell->db();
     }
 
     /**
@@ -47,7 +42,7 @@ class BemIssues
     }
 
     /**
-     * @return \stdClass[]
+     * @return BemIssue[]
      */
     public function issues()
     {
@@ -59,12 +54,51 @@ class BemIssues
     }
 
     /**
-     * @param string $checksum Binary checksum
+     * @param BemIssue $issue
      * @return bool
      */
-    public function hasIssue($checksum)
+    public function has(BemIssue $issue)
     {
-        return array_key_exists($checksum, $this->issues());
+        return array_key_exists($issue->get('ci_name_checksum'), $this->issues());
+    }
+
+    /**
+     * @param BemIssue $issue
+     * @return $this
+     */
+    public function add(BemIssue $issue)
+    {
+        if ($this->has($issue)) {
+            $existing = $this->issues[$issue->get('ci_name_checksum')];
+            $existing->setProperties(
+                $issue->getProperties()
+            );
+
+            if ($existing->hasBeenModified()) {
+                $existing->store();
+            }
+        } else {
+            $this->issues[$issue->get('ci_name_checksum')] = $issue;
+            if ($issue->hasBeenModified()) {
+                $issue->store();
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param BemIssue $issue
+     * @return $this
+     */
+    public function delete(BemIssue $issue)
+    {
+        $issue->delete();
+        if ($this->has($issue)) {
+            unset($this->issues[$issue->getKey()]);
+        }
+
+        return $this;
     }
 
     /**
@@ -78,76 +112,41 @@ class BemIssues
     }
 
     /**
+     * All issues that should be sent within the next minute
+     *
      * @return BemIssue[]
      */
     public function fetchOverdueIssues()
     {
-        $now = Util::timestampWithMilliseconds();
-        $query = $this->db->select()
-            ->from('bem_issue')
-            ->where('ts_next_notification < ?', $now);
+        $due = [];
+        $dueTime = Util::timestampWithMilliseconds() + 60 * 1000;
+        foreach ($this->issues() as $issue) {
+            if ($issue->isDueIn($dueTime)) {
+                $due[] = $issue;
+            }
+        }
 
-        // TODO: create objects
-        return $this->db->fetchAll($query);
+        return $due;
     }
 
     /**
      * Fetches all existing issues from our DB
      *
-     * @return \stdClass[]
+     * @return BemIssue[]
      */
-    public function fetchExistingIssues()
+    protected function fetchExistingIssues()
     {
         $issues = [];
         $rows = $this->db->fetchAll($this->selectIssues());
         foreach ($rows as $row) {
-            $issues[$row->ci_name_checksum] = $row;
+            $issues[$row->ci_name_checksum] = BemIssue::forDbRow($row, $this->cell);
         }
 
         return $issues;
     }
 
-    public function selectIssues()
+    protected function selectIssues()
     {
         return $this->db->select()->from($this->getTableName());
-    }
-
-    /**
-     * @return DbAdapter
-     */
-    public function db()
-    {
-        return $this->db;
-    }
-
-    /**
-     * @param array $props
-     */
-    protected function issueCacheInsert(array $props)
-    {
-        $this->issues[$props['ci_name_checksum']] = (object) $props;
-    }
-
-    /**
-     * @param string $checksum
-     * @param array $props
-     */
-    protected function issueCacheUpdate($checksum, array $props)
-    {
-        unset($props['cnt_notifications']);
-        $issue = $this->issues[$checksum];
-        foreach ($props as $key => $val) {
-            $issue->$key = $val;
-        }
-
-        $issue->cnt_notifications++;
-    }
-
-    /**
-     * @param string $checksum
-     */
-    protected function issueCacheRemove($checksum)
-    {
-        unset($this->issues[$checksum]);
     }
 }

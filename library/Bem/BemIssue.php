@@ -27,12 +27,19 @@ class BemIssue
 
     protected $hasBeenStored = false;
 
+    protected $tableName = 'bem_issue';
+
     /** @var CellConfig */
     private $cell;
 
     protected function __construct(CellConfig $cell)
     {
         $this->cell = $cell;
+    }
+
+    public function getKey()
+    {
+        return $this->get('ci_name_checksum');
     }
 
     public static function forIcingaObject($icingaObject, CellConfig $cell)
@@ -46,9 +53,20 @@ class BemIssue
         $result = $db->fetchRow($object->prepareSelectQuery());
         if ($result) {
             $newProperties = $object->getPropertiesForDb();
-            $object->setProperties($result);
-            $object->setUnmodified();
+            $object = static::forDbRow($result, $cell);
             $object->setProperties($newProperties);
+        }
+
+        return $object;
+    }
+
+    public static function forDbRow($row, CellConfig $cell)
+    {
+        $object = new static($cell);
+        $object->fillWithDefaultProperties();
+        if ($row) {
+            $object->setProperties($row);
+            $object->setUnmodified();
             $object->hasBeenStored = true;
         }
 
@@ -66,6 +84,11 @@ class BemIssue
     public function isNew()
     {
         return ! $this->hasBeenStored;
+    }
+
+    public function isDueIn($dueTime)
+    {
+        return $this->get('ts_next_notification') <= $dueTime;
     }
 
     public function store()
@@ -91,27 +114,51 @@ class BemIssue
 
     protected function insert()
     {
-        $this->cell->db()->insert(
-            'bem_issue',
+        if ($this->cell->db()->insert(
+            $this->tableName,
             $this->getPropertiesForDb()
-        );
+        )) {
+            $this->setUnmodified();
+        }
     }
 
     protected function update()
     {
         $db = $this->cell->db();
-        $db->update(
-            'bem_issue',
+        if ($db->update(
+            $this->tableName,
             $this->getModifiedProperties(),
-            $db->quoteInto('ci_name_checksum = ?', $this->get('ci_name_checksum'))
-        );
+            $this->createWhere()
+        )) {
+            $this->setUnmodified();
+        }
+    }
+
+    public function delete()
+    {
+        if ($this->cell->db()->delete(
+            $this->tableName,
+            $this->createWhere()
+        )) {
+            $this->hasBeenStored = false;
+            foreach ($this->listProperties() as $key) {
+                if ($this->get($key) !== $this->defaultProperties[$key]) {
+                    $this->modifiedProperties[$key] = true;
+                }
+            }
+        }
+    }
+
+    public function createWhere()
+    {
+        return $this->cell->db()->quoteInto('ci_name_checksum = ?', $this->getKey());
     }
 
     protected function prepareSelectQuery()
     {
         return $this->cell->db()->select()
             ->from('bem_issue')
-            ->where('ci_name_checksum = ?', $this->get('ci_name_checksum'));
+            ->where('ci_name_checksum = ?', $this->getKey());
     }
 
     protected static function calculateCiChecksum(CellConfig $config, $host, $service = null)
