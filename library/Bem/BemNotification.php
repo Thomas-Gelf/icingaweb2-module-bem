@@ -127,7 +127,42 @@ class BemNotification
             }
         }
 
-        return $this->slotSetValues;
+        return (array) $this->slotSetValues;
+    }
+
+    public function getSlotSetValue($key, $default = null)
+    {
+        $values = $this->getSlotSetValues();
+        if (array_key_exists($key, $values)) {
+            return $values[$key];
+        } else {
+            return $default;
+        }
+    }
+
+    /**
+     * Calculates timestamp (in ms) for the next notification
+     *
+     * In case we didn't get a valid event ID,
+     *
+     * @return int
+     */
+    public function calculateNextNotification()
+    {
+        if ($this->get('bem_event_id') === null) {
+            // We haven't been able to get an EventId, retry in 15 seconds
+            return Util::timestampWithMilliseconds() + 15 * 1000;
+        }
+
+        $mcTimeout = $this->getSlotSetValue('mc_timeout');
+        if ($mcTimeout === null) {
+            // Default re-notification interval: 15min
+            return Util::timestampWithMilliseconds() + 900 * 1000;
+        }
+
+        // mc_timeout is in seconds, so it should multiply with 1000.
+        // We want the re-notification to occur after 50% of that time
+        return Util::timestampWithMilliseconds() + $mcTimeout * 500;
     }
 
     public function storeToLog()
