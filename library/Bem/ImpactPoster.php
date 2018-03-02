@@ -53,6 +53,8 @@ class ImpactPoster
         $notification = BemNotification::forIssue($issue);
         $resultHandler = new ImpactPosterResultHandler($issue, $notification, $runner);
         $cmd = $this->getCommandString($notification);
+
+        // Enable one of those to simulate severe problems:
         // $cmd = 'exec sleep 100';
         // $cmd = 'exec /tmp';
 
