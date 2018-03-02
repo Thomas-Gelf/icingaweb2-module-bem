@@ -2,8 +2,10 @@
 
 namespace Icinga\Module\Bem\Web\Widget;
 
+use dipl\Html\Html;
 use dipl\Translation\TranslationHelper;
 use dipl\Web\Widget\NameValueTable;
+use Icinga\Date\DateFormatter;
 use Icinga\Module\Bem\BemIssue;
 
 class IssueDetails extends NameValueTable
@@ -32,5 +34,34 @@ class IssueDetails extends NameValueTable
             $this->addNameValueRow($this->translate('Service'), $this->service);
         }
         $this->addNameValuePairs($i->getSlotSetValues());
+        $this->addNameValuePairs([
+            $this->translate('Notifications') => $i->get('cnt_notifications'),
+            $this->translate('Next Notification') => new NextNotificationRenderer(
+                $i->get('ts_next_notification')
+            )
+        ]);
+
+        if ($i->get('cnt_notifications') > 0) {
+            $this->addNameValuePairs([
+                $this->translate('Last Notification') => $this->timeAgo(
+                    $i->get('ts_last_notification')
+                ),
+                $this->translate('First Notification') => $this->timeAgo(
+                    $i->get('ts_next_notification')
+                )
+            ]);
+        }
+    }
+
+    protected function timeAgo($timestamp)
+    {
+        return Html::tag(
+            'span',
+            [
+                'class' => 'time-ago',
+                'title' => DateFormatter::formatDateTime($timestamp / 1000)
+            ],
+            DateFormatter::timeAgo($timestamp / 1000)
+        );
     }
 }
