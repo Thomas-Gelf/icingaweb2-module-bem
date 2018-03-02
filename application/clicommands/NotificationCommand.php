@@ -39,7 +39,7 @@ class NotificationCommand extends Command
             $object['service_name'] = null;
         }
         $object = (object) $object;
-        if ($config->wants($object)) {
+        if ($config->wantsIcingaObject($object)) {
             $issue = BemIssue::forIcingaObject($object, $config);
             $isNew = $issue->isNew();
             $issue->scheduleNextNotification()->store();
@@ -85,7 +85,7 @@ class NotificationCommand extends Command
         }
 
         $notification = BemNotification::forIcingaObject((object) $object, $config);
-        if ($config->wants((object) $object)) {
+        if ($config->wantsIcingaObject((object) $object)) {
             $poster = $config->getImpactPoster();
             echo $poster->getCommandString($notification) . "\n";
         } else {

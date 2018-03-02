@@ -114,7 +114,7 @@ class CellConfig
         return new static(Config::module('bem', "cells/$name"), $name);
     }
 
-    public function wants($object)
+    public function wantsIcingaObject($object)
     {
         return $this->blackAndWhiteList->wants($object);
     }
