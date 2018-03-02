@@ -45,10 +45,13 @@ class NotificationLogTable extends ZfQueryBasedTable
      * Well... it's the CI, not the issue
      *
      * @param BemIssue $issue
+     * @return $this;
      */
     public function filterIssue(BemIssue $issue)
     {
         $this->getQuery()->where('ci_name_checksum = ?', $issue->getKey());
+
+        return $this;
     }
 
     protected function renderObjectName($host, $service = null)
@@ -66,7 +69,7 @@ class NotificationLogTable extends ZfQueryBasedTable
         $this->splitByDay($ts);
 
         return $this::row([
-            DateFormatter::formatDate($ts),
+            DateFormatter::formatTime($ts),
             Link::create(
                 $this->renderObjectName($row->host_name, $row->object_name),
                 'bem/notification',

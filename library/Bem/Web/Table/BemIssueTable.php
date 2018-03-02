@@ -8,6 +8,7 @@ use dipl\Web\Table\ZfQueryBasedTable;
 use Icinga\Date\DateFormatter;
 use Icinga\Module\Bem\Config\CellConfig;
 use Icinga\Module\Bem\Util;
+use Icinga\Module\Bem\Web\Widget\NextNotificationRenderer;
 
 class BemIssueTable extends ZfQueryBasedTable
 {
@@ -71,18 +72,11 @@ class BemIssueTable extends ZfQueryBasedTable
 
     public function renderRow($row)
     {
-        $time = Util::timestampWithMilliseconds() < $row->ts_next_notification
-            ? DateFormatter::timeUntil($row->ts_next_notification / 1000, true)
-            : Html::tag(
-                'span',
-                ['class' => 'error'],
-                DateFormatter::timeAgo($row->ts_next_notification / 1000)
-            );
         return $this::row([
             $this->renderObjectLink($row->host_name, $row->object_name),
             $row->severity,
             $row->cell_name,
-            $time
+            new NextNotificationRenderer($row->ts_next_notification)
         ])->setAttributes([
             'class' => Util::cssClassForSeverity($row->severity)
         ]);
