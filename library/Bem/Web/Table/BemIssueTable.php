@@ -2,6 +2,7 @@
 
 namespace Icinga\Module\Bem\Web\Table;
 
+use dipl\Html\Html;
 use dipl\Html\Link;
 use dipl\Web\Table\ZfQueryBasedTable;
 use Icinga\Date\DateFormatter;
@@ -16,7 +17,7 @@ class BemIssueTable extends ZfQueryBasedTable
     private $cell;
 
     protected $defaultAttributes = [
-        'class' => ['common-table', 'state-table', 'table-row-selectable'],
+        'class' => ['common-table', 'table-row-selectable'],
         'data-base-target' => '_next'
     ];
 
@@ -46,7 +47,7 @@ class BemIssueTable extends ZfQueryBasedTable
 
     public function getColumnsToBeRendered()
     {
-        return ['Host/Service', 'Severity', 'Cell', 'Schedule'];
+        return ['Host/Service', 'Severity', 'Cell', 'Scheduled'];
     }
 
     protected function hostHasChanged($row)
@@ -59,29 +60,29 @@ class BemIssueTable extends ZfQueryBasedTable
         }
     }
 
-    protected function renderObjectName($host, $object = null)
+    protected function renderObjectLink($host, $object)
     {
-        if ($object === null) {
-            return Link::create($host, 'bem/issue', [
-                'host' => $host,
-                'cell' => $this->cell->getName()
-            ]);
-        } else {
-            return Link::create("$host: $object", 'bem/object', [
-                'host'   => $host,
-                'object' => $object,
-                'cell'   => $this->cell->getName()
-            ]);
-        }
+        return Link::create("$host: $object", 'bem/issue', [
+            'host'   => $host,
+            'object' => $object,
+            'cell'   => $this->cell->getName()
+        ]);
     }
 
     public function renderRow($row)
     {
+        $time = Util::timestampWithMilliseconds() < $row->ts_next_notification
+            ? DateFormatter::timeUntil($row->ts_next_notification / 1000, true)
+            : Html::tag(
+                'span',
+                ['class' => 'error'],
+                DateFormatter::timeAgo($row->ts_next_notification / 1000)
+            );
         return $this::row([
-            $this->renderObjectName($row->host_name, $row->object_name),
+            $this->renderObjectLink($row->host_name, $row->object_name),
             $row->severity,
             $row->cell_name,
-            DateFormatter::timeUntil($row->ts_next_notification / 1000, true)
+            $time
         ])->setAttributes([
             'class' => Util::cssClassForSeverity($row->severity)
         ]);
