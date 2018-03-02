@@ -192,7 +192,6 @@ class MainRunner
             $this->countRunningProcesses(),
             count($this->queue)
         );
-        Logger::debug('Issue is done, %d still running', $this->countRunningProcesses());
     }
 
     protected function isRunQueueFull()
