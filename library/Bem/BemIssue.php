@@ -55,6 +55,14 @@ class BemIssue
         return $object;
     }
 
+    /**
+     * @return CellConfig
+     */
+    public function getCell()
+    {
+        return $this->cell;
+    }
+
     public function isNew()
     {
         return ! $this->hasBeenStored;

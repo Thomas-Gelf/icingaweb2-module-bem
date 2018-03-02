@@ -63,6 +63,32 @@ class BemNotification
         return $object->setProperties($result);
     }
 
+    public static function forIssue(BemIssue $issue)
+    {
+        $object = new static($issue->getCell());
+        $object->fillWithDefaultProperties();
+        $object->setBemIssueProperties($issue);
+
+        return $object;
+    }
+
+    public function setBemIssueProperties(BemIssue $issue)
+    {
+        $properties = [
+            'ci_name_checksum',
+            'host_name',
+            'object_name',
+            'severity',
+            'slot_set_values',
+        ];
+
+        foreach ($properties as $property) {
+            $this->set($property, $issue->get($property));
+        }
+
+        return $this;
+    }
+
     public static function forIcingaObject($icingaObject, CellConfig $cell)
     {
         $object = new static($cell);
