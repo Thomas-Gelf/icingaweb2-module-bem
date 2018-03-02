@@ -23,8 +23,18 @@ class BlackAndWhitelist
 
     public function wants($object)
     {
-        return $this->getWhitelistFilter()->matches($object)
+        return $this->whitelists($object)
             && ! $this->blacklists($object);
+    }
+
+    protected function whitelists($object)
+    {
+        $filter = $this->getWhitelistFilter();
+        if ($filter->isEmpty()) {
+            return true;
+        } else {
+            return $filter->matches($object);
+        }
     }
 
     protected function blacklists($object)
