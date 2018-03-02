@@ -48,9 +48,10 @@ class ImpactPoster
         // TODO: msend -l (home) -z
     }
 
-    public function send(BemNotification $notification, LoopInterface $loop = null)
+    public function send(BemIssue $issue, LoopInterface $loop = null, MainRunner $runner = null)
     {
-        $resultHandler = new ImpactPosterResultHandler($notification);
+        $notification = BemNotification::forIssue($issue);
+        $resultHandler = new ImpactPosterResultHandler($issue, $notification, $runner);
         $cmd = $this->getCommandString($notification);
         // $cmd = 'exec sleep 100';
         // $cmd = 'exec /tmp';

@@ -17,10 +17,22 @@ class ImpactPosterResultHandler
 
     private $startTime;
 
-    public function __construct(BemIssue $issue)
-    {
+    /** @var MainRunner */
+    private $runner;
+
+    public function __construct(
+        BemIssue $issue,
+        BemNotification $notification = null,
+        MainRunner $runner = null
+    ) {
         $this->issue = $issue;
-        $this->notification = BemNotification::forIssue($issue);
+        if ($notification === null) {
+            $this->notification = BemNotification::forIssue($issue);
+        } else {
+            $this->notification = $notification;
+        }
+
+        $this->runner = $runner;
     }
 
     public function start($commandLine)
@@ -52,6 +64,9 @@ class ImpactPosterResultHandler
         $n->set('bem_event_id', $this->extractEventId());
         $n->storeToLog();
         $this->updateIssue();
+        if ($this->runner !== null) {
+            $this->runner->notifyIssueIsDone($this->issue);
+        }
     }
 
     protected function updateIssue()
