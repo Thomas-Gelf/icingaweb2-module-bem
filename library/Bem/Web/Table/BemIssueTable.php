@@ -4,20 +4,16 @@ namespace Icinga\Module\Bem\Web\Table;
 
 use dipl\Html\Link;
 use dipl\Web\Table\ZfQueryBasedTable;
+use Icinga\Date\DateFormatter;
 use Icinga\Module\Bem\Config\CellConfig;
+use Icinga\Module\Bem\Util;
 
 class BemIssueTable extends ZfQueryBasedTable
 {
     private $lastHost;
 
-    private $showOnlyProblems = true;
-
     /** @var CellConfig */
     private $cell;
-
-    private $checksums = [];
-
-    private $issueDetails;
 
     protected $defaultAttributes = [
         'class' => ['common-table', 'state-table', 'table-row-selectable'],
@@ -25,23 +21,9 @@ class BemIssueTable extends ZfQueryBasedTable
     ];
 
     protected $searchColumns = [
+        'severity',
         'host_name',
-        'service_name',
-        'host.vars.bmc_object_class',
-        'host.vars.contact_team',
-        'output'
-    ];
-
-    private static $hostStateClass = [
-        0 => 'state-up',
-        1 => 'state-down',
-    ];
-
-    private static $serviceStateClass = [
-        0 => 'state-ok',
-        1 => 'state-warning',
-        2 => 'state-critical',
-        3 => 'state-unknown',
+        'object_name',
     ];
 
     /**
@@ -64,13 +46,7 @@ class BemIssueTable extends ZfQueryBasedTable
 
     public function getColumnsToBeRendered()
     {
-        return ['Host/Service', 'Output', 'Contact', 'BMC'];
-    }
-
-    public function showOnlyProblems($onlyProblems = true)
-    {
-        $this->showOnlyProblems = (bool) $onlyProblems;
-        return $this;
+        return ['Host/Service', 'Severity', 'Cell', 'Schedule'];
     }
 
     protected function hostHasChanged($row)
@@ -83,16 +59,18 @@ class BemIssueTable extends ZfQueryBasedTable
         }
     }
 
-    protected function renderObjectName($host, $service = null)
+    protected function renderObjectName($host, $object = null)
     {
-        if ($service === null) {
-            return Link::create($host, 'bem/notification', [
-                'host' => $host
+        if ($object === null) {
+            return Link::create($host, 'bem/issue', [
+                'host' => $host,
+                'cell' => $this->cell->getName()
             ]);
         } else {
-            return Link::create("$host: $service", 'bem/notification', [
-                'host'    => $host,
-                'service' => $service
+            return Link::create("$host: $object", 'bem/object', [
+                'host'   => $host,
+                'object' => $object,
+                'cell'   => $this->cell->getName()
             ]);
         }
     }
@@ -100,15 +78,23 @@ class BemIssueTable extends ZfQueryBasedTable
     public function renderRow($row)
     {
         return $this::row([
-            $this->renderObjectName($row->host, $row->service),
-            $row->last_output,
-            $row->last_exit_code,
+            $this->renderObjectName($row->host_name, $row->object_name),
+            $row->severity,
+            $row->cell_name,
+            DateFormatter::timeUntil($row->ts_next_notification / 1000, true)
+        ])->setAttributes([
+            'class' => Util::cssClassForSeverity($row->severity)
         ]);
     }
 
     protected function prepareQuery()
     {
-        $issues = new BemIssues($this->cell->db());
-        return $issues->selectIssues();
+        return $this->cell->db()->select()->from('bem_issue', [
+            'cell_name',
+            'host_name',
+            'object_name',
+            'severity',
+            'ts_next_notification'
+        ])->order('host_name')->order('object_name');
     }
 }
