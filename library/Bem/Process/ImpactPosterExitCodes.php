@@ -34,9 +34,9 @@ class ImpactPosterExitCodes
 
         // Found in "BMC Impact Solutions: General Administration" (7.1), not sure
         // whether they are still valid for ProactiveNet 9.6
-        2 => 'Failed to initialize in Server mode',
-        3 => 'Failed to find a valid cell',
-        4 => 'Failed to close the client connection',
+        // 2 => 'Failed to initialize in Server mode',
+        // 3 => 'Failed to find a valid cell',
+        // 4 => 'Failed to close the client connection',
     ];
 
     public function getExitCodeDescription($code)
