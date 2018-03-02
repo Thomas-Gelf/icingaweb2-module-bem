@@ -119,7 +119,7 @@ class IdoDb
                 'host_id'         => '(NULL)',
                 'host_name'       => 'ho.name1',
                 'service_name'    => '(NULL)',
-                'state_type'      => 'hs.state_type',
+                'state_type'      => "(CASE WHEN hs.state_type = 1 THEN 'HARD' ELSE 'SOFT' END)",
                 'state'           => 'hs.current_state',
                 'hard_state'      => 'CASE WHEN hs.has_been_checked = 0 OR hs.has_been_checked IS NULL THEN 99'
                     . ' ELSE CASE WHEN hs.state_type = 1 THEN hs.current_state'
@@ -145,7 +145,7 @@ class IdoDb
                 'host_id'         => 'hs.host_object_id',
                 'host_name'       => 'so.name1',
                 'service_name'    => 'so.name2',
-                'state_type'      => 'ss.state_type',
+                'state_type'      => "(CASE WHEN ss.state_type = 1 THEN 'HARD' ELSE 'SOFT' END)",
                 'state'           => 'ss.current_state',
                 'hard_state'      => 'CASE WHEN ss.has_been_checked = 0 OR ss.has_been_checked IS NULL THEN 99'
                     . ' ELSE CASE WHEN ss.state_type = 1 THEN ss.current_state'
