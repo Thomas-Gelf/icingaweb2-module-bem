@@ -50,7 +50,6 @@ class BemIssue
         $object = new static($cell);
         $object->fillWithDefaultProperties();
         $object->setIcingaObject($icingaObject);
-        $object->set('is_relevant', $cell->wantsIcingaObject($object) ? 'y' : 'n');
 
         $result = $db->fetchRow($object->prepareSelectQuery());
         if ($result) {
@@ -226,6 +225,9 @@ class BemIssue
         $this->set('object_name', $params['mc_object']);
         $this->recalculateCiCheckSum();
         $this->checkWorstSeverity();
+        $this->set('is_relevant', $this->cell->wantsIcingaObject(
+            $object
+        ) ? 'y' : 'n');
 
         return $this;
     }

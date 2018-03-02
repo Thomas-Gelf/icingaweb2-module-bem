@@ -84,8 +84,10 @@ class NotificationCommand extends Command
             $object['service_name'] = null;
         }
 
-        $notification = BemNotification::forIcingaObject((object) $object, $config);
-        if ($config->wantsIcingaObject((object) $object)) {
+        $object = (object) $object;
+
+        $notification = BemNotification::forIcingaObject($object, $config);
+        if ($config->wantsIcingaObject($object)) {
             $poster = $config->getImpactPoster();
             echo $poster->getCommandString($notification) . "\n";
         } else {
