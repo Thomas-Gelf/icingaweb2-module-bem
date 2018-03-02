@@ -72,7 +72,7 @@ class IdoDb
     {
         return $this->db->fetchAll(
             $this->selectServices()
-                ->where('hs.host_state = 0')
+                ->where('hs.current_state = 0')
                 ->where('ss.current_state > 0')
                 ->where('ss.scheduled_downtime_depth = 0')
                 ->where('ss.problem_has_been_acknowledged = 0')
