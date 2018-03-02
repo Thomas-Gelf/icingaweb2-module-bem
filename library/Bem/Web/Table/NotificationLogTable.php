@@ -13,7 +13,7 @@ class NotificationLogTable extends ZfQueryBasedTable
     private $cell;
 
     protected $defaultAttributes = [
-        'class' => ['common-table', 'state-table', 'table-row-selectable'],
+        'class' => ['common-table', 'table-row-selectable'],
         'data-base-target' => '_next'
     ];
 
