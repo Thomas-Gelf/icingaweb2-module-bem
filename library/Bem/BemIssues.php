@@ -64,6 +64,9 @@ class BemIssues
                 continue;
             }
             if ($this->has($issue)) {
+                if ($issue->isNew()) {
+                    $issue->scheduleNextNotification();
+                }
                 $knownIssue = $this->getWithChecksum($issue->getKey());
                 if ($issue->get('severity') !== $knownIssue->get('severity')) {
                     $this->add($issue);
