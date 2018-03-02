@@ -87,7 +87,6 @@ class BemIssues
             ->from('bem_issue')
             ->where('ts_next_notification < ?', $now);
 
-
         // TODO: create objects
         return $this->db->fetchAll($query);
     }

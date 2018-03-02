@@ -33,16 +33,7 @@ class NotificationDetails extends NameValueTable
         if ($this->service !== null) {
             $this->addNameValueRow($this->translate('Service'), $this->service);
         }
-        /*
-        $this->addNameValuePairs([
-            $this->translate('Last priority') => $n->last_priority,
-            $this->translate('Last severity') => $n->last_severity,
-            $this->translate('Notifications') => $n->cnt_notifications,
-            $this->translate('First notification') => $n->first_notification,
-            $this->translate('Last notification') => $n->last_notification,
-            $this->translate('Next notification') => $n->next_notification,
-        ]);
-        */
+        $this->addNameValuePairs($n->getSlotSetValues());
         $exitCodeInfo = new ImpactPosterExitCodes();
         if ($n->get('command_line') !== null) {
             $this->addNameValueRow(
