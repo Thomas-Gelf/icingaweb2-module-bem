@@ -217,7 +217,7 @@ class BemIssue
     {
         $this->set('cell_name', $this->cell->getName());
         $this->set('host_name', $object->host_name);
-        $this->set('severity', 'CRITICAL');
+        $this->set('severity', $this->cell->calculateSeverityForIcingaObject($object));
         $params = $this->cell->fillParams($object);
         $this->set('slot_set_values', json_encode($params));
 

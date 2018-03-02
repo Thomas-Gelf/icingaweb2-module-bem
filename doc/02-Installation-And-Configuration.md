@@ -122,17 +122,23 @@ filter1 = "object_type=service&(host.vars.priority>=3|host.vars.priority<=5)"
 filter2 = "host.vars.cmdb_state=end*"
 filter3 = "host.vars.monitored_by_icinga1"
 
-[msend_modifiers.Transform Host States]
-map = host_states
-filter = "object_type=host"
-
-[msend_modifiers.Transform Service States]
-map = service_states
+; Map service states
+[modifier.0]
 filter = "object_type=service"
+modifier = map
+map_name = service_states
 
-[msend_modifiers.Downgrade unused and maintenance hosts]
-map = downgrade
+; Map host states
+[modifier.1]
+filter = "object_type=host"
+modifier = map
+map_name = host_states
+
+; Downgrade unused and maintenance hosts
+[modifiers.2]
 filter = "host.vars.cmdb_state!=in use|host.vars.maintenance"
+modifier = map
+map_name = downgrade
 ```
 
 Let's explain the various settings. Configuration consists of two sections,

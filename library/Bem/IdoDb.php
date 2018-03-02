@@ -115,6 +115,7 @@ class IdoDb
             ['ho' => 'icinga_objects'],
             [
                 'id'              => 'ho.object_id',
+                'object_type'     => "('host')",
                 'host_id'         => '(NULL)',
                 'host_name'       => 'ho.name1',
                 'service_name'    => '(NULL)',
@@ -140,6 +141,7 @@ class IdoDb
             ['so' => 'icinga_objects'],
             [
                 'id'              => 'so.object_id',
+                'object_type'     => "('service')",
                 'host_id'         => 'hs.host_object_id',
                 'host_name'       => 'so.name1',
                 'service_name'    => 'so.name2',

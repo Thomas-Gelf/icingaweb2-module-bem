@@ -3,7 +3,9 @@
 namespace Icinga\Module\Bem\Config;
 
 use Icinga\Application\Config;
+use Icinga\Data\Filter\Filter;
 use Icinga\Data\ResourceFactory;
+use Icinga\Exception\ConfigurationError;
 use Icinga\Module\Bem\ImpactPoster;
 
 class CellConfig
@@ -36,6 +38,8 @@ class CellConfig
     private $impactPoster;
 
     private $configCheckSum;
+
+    private $maps;
 
     /**
      * BmcCell constructor.
@@ -79,6 +83,69 @@ class CellConfig
         return false;
     }
 
+    protected function loadMaps()
+    {
+        $this->maps = [];
+        foreach (Config::module('bem', 'maps') as $name => $section) {
+            $this->maps[$name] = new Map($section);
+        }
+    }
+
+    public function calculateSeverityForIcingaObject($object)
+    {
+        $map = [
+            'host' => [
+                '0' => 'UP',
+                '1' => 'DOWN',
+                '2' => 'UNREACHABLE',
+            ],
+            'service' => [
+                '0' => 'OK',
+                '1' => 'WARNING',
+                '2' => 'CRITICAL',
+                '3' => 'UNKNOWN',
+            ],
+        ];
+        $state = $map[$object->object_type][$object->state];
+
+        foreach ($this->config as $title => $section) {
+            if (preg_match('/^modifier\./', $title)) {
+                if ($section->get('modifier') !== 'map') {
+                    throw new ConfigurationError(
+                        'Unknown modifier: %s',
+                        $section->get('modifier')
+                    );
+                }
+
+                if ($filter = $section->get('filter')) {
+                    $filter = Filter::fromQueryString($filter);
+                    if ($filter->matches($object)) {
+                        $map = $this->requireMap($section->get('map_name'));
+                        $state = $map->map($state);
+                    }
+                }
+            }
+        }
+        return $state;
+    }
+
+    /**
+     * @param $name
+     * @return Map
+     * @throws ConfigurationError
+     */
+    protected function requireMap($name)
+    {
+        if (! array_key_exists($name, $this->maps)) {
+            throw new ConfigurationError(
+                'Required map does not exist: %s',
+                $name
+            );
+        }
+
+        return $this->maps[$name];
+    }
+
     protected function configHasBeenChangedOnDisk()
     {
         return $this->getConfigChecksumFromDisk() !== $this->configCheckSum;
@@ -96,6 +163,7 @@ class CellConfig
         $this->configCheckSum = $this->getConfigChecksumFromDisk();
 
         $this->blackAndWhiteList = new BlackAndWhitelist($this);
+        $this->loadMaps();
 
         $this->db = null;
         $this->impactPoster = null;
