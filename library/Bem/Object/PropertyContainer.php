@@ -198,7 +198,7 @@ trait PropertyContainer
     {
         $properties = array();
         foreach (array_keys($this->modifiedProperties) as $key) {
-            $properties[$key] = $this->properties[$key];
+            $properties[$key] = $this->get($key);
         }
 
         return $properties;
