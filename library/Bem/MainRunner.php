@@ -25,7 +25,7 @@ class MainRunner
     /** @var SplObjectStorage */
     protected $running;
 
-    /** @var BemNotification[] */
+    /** @var BemIssue[] */
     protected $queue = [];
 
     /** @var BemIssues */
@@ -33,6 +33,9 @@ class MainRunner
 
     /** @var CellStats */
     protected $stats;
+
+    /** @var IdoDb */
+    protected $ido;
 
     private $isReady = false;
 
@@ -44,9 +47,13 @@ class MainRunner
         $this->reset();
     }
 
-    protected function enqueue(BemNotification $notification)
+    protected function enqueue(BemIssue $issue)
     {
-        $this->queue[] = $notification;
+        $this->queue[] = $issue;
+        $this->stats->updateRunQueue(
+            $this->countRunningProcesses(),
+            count($this->queue)
+        );
     }
 
     public function run()
@@ -55,12 +62,20 @@ class MainRunner
 
         $loop->nextTick(function () {
             $this->runFailSafe(function () {
+                $this->issues->refreshIssues();
+                $this->refreshIdoIssues();
                 $this->stats->updateStats(true);
+                $this->fillQueue();
             });
         });
         $loop->addPeriodicTimer(0.5, function () {
             $this->runFailSafe(function () {
                 $this->fillQueue();
+            });
+        });
+        $loop->addPeriodicTimer(5, function () {
+            $this->runFailSafe(function () {
+                $this->refreshIdoIssues();
             });
         });
         $loop->addPeriodicTimer(0.1, function () {
@@ -97,6 +112,10 @@ class MainRunner
         $this->isReady = false;
         try {
             Logger::info('Resetting BEM main runner for %s', $this->cellName);
+            if ($this->ido !== null) {
+                $this->ido->getDb()->closeConnection();
+            }
+            $this->ido = IdoDb::fromMonitoringModule();
             $this->cell->disconnect();
             $this->maxParallel = $this->cell->getMaxParallelRunners();
             $this->issues = new BemIssues($this->cell);
@@ -118,14 +137,17 @@ class MainRunner
             return;
         }
 
-        // TODO: evaluate whether we should sync Icinga Events
-        // foreach ($cell->fetchProblemEvents() as $row) {
-        //     $this->enqueue(BemNotification::fromProblemQueryRow($row));
-        // }
-
-        foreach ($this->issues->fetchOverdueIssues() as $issue) {
-            $this->enqueue(BemNotification::forIssue($issue));
+        foreach ($this->issues->getDueIssues() as $issue) {
+            if (! $this->running->contains($issue)) {
+                $this->enqueue($issue);
+            }
         }
+    }
+
+    protected function refreshIdoIssues()
+    {
+        Logger::debug('Refreshing IDO issues');
+        $this->issues->refreshFromIdo($this->ido);
     }
 
     protected function runFailSafe($method)
@@ -145,21 +167,37 @@ class MainRunner
     protected function runQueue()
     {
         while ($this->isReady && ! $this->isRunQueueFull()) {
-            $event = array_shift($this->queue);
-            if ($event === null) {
+            /** @var BemIssue $event */
+            $issue = array_shift($this->queue);
+            $this->stats->updateRunQueue(
+                $this->countRunningProcesses(),
+                count($this->queue)
+            );
+
+            if ($issue === null) {
                 return;
             }
 
-            $this->running->attach($event);
-            $this->runFailSafe(function () use ($event) {
-                $this->sendAndLogEvent($event);
+            $this->running->attach($issue);
+            $this->runFailSafe(function () use ($issue) {
+                $this->sendAndLogEvent($issue);
             });
         }
     }
 
+    public function notifyIssueIsDone(BemIssue $issue)
+    {
+        $this->running->detach($issue);
+        $this->stats->updateRunQueue(
+            $this->countRunningProcesses(),
+            count($this->queue)
+        );
+        Logger::debug('Issue is done, %d still running', $this->countRunningProcesses());
+    }
+
     protected function isRunQueueFull()
     {
-        return $this->countRunningProcesses() < $this->maxParallel;
+        return $this->countRunningProcesses() >= $this->maxParallel;
     }
 
     public function countRunningProcesses()
@@ -167,15 +205,16 @@ class MainRunner
         return $this->running->count();
     }
 
-    protected function sendAndLogEvent(BemNotification $notification)
+    protected function sendAndLogEvent(BemIssue $issue)
     {
         $poster = $this->cell->getImpactPoster();
         $this->stats->updateRunQueue(
             $this->countRunningProcesses(),
-            $this->maxParallel
+            count($this->queue)
         );
 
-        $poster->send($notification, $this->loop);
+        // TODO: When done, detach from running queue!
+        $poster->send($issue, $this->loop, $this);
     }
 
     protected function loop()
