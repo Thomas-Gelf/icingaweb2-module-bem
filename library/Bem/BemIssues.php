@@ -2,6 +2,7 @@
 
 namespace Icinga\Module\Bem;
 
+use Icinga\Application\Logger;
 use Icinga\Module\Bem\Config\CellConfig;
 use Zend_Db_Adapter_Abstract as DbAdapter;
 
@@ -53,6 +54,40 @@ class BemIssues
         return $this->issues;
     }
 
+    public function refreshFromIdo(IdoDb $ido)
+    {
+        $seen = [];
+        foreach ($ido->fetchIssues($this->cell) as $issue) {
+            if (! $issue->isRelevant()) {
+                continue;
+            }
+            if ($this->has($issue)) {
+                $knownIssue = $this->getWithChecksum($issue->getKey());
+                if ($issue->get('severity') !== $knownIssue->get('severity')) {
+                    $this->add($issue);
+                }
+                $seen[] = $issue->getKey();
+            } elseif ($issue->isRelevant()) {
+                $issue->scheduleNextNotification();
+                $this->add($issue);
+                $seen[] = $issue->getKey();
+            }
+        }
+
+        $obsolete = array_diff(array_keys($this->issues), $seen);
+        Logger::debug(
+            "%d are obsolete, %d seen, %d total\n",
+            count($obsolete),
+            count($seen),
+            count($this->issues)
+        );
+
+        foreach ($obsolete as $key) {
+            // TODO: mark as obsolete, so we could send one last notification
+            $this->delete($this->issues[$key]);
+        }
+    }
+
     /**
      * @param BemIssue $issue
      * @return bool
@@ -60,6 +95,15 @@ class BemIssues
     public function has(BemIssue $issue)
     {
         return array_key_exists($issue->get('ci_name_checksum'), $this->issues());
+    }
+
+    /**
+     * @param string $checksum
+     * @return BemIssue
+     */
+    public function getWithChecksum($checksum)
+    {
+        return $this->issues[$checksum];
     }
 
     /**
@@ -116,7 +160,7 @@ class BemIssues
      *
      * @return BemIssue[]
      */
-    public function fetchOverdueIssues()
+    public function getDueIssues()
     {
         $due = [];
         $dueTime = Util::timestampWithMilliseconds() + 60 * 1000;
@@ -125,6 +169,12 @@ class BemIssues
                 $due[] = $issue;
             }
         }
+
+        Logger::debug(
+            'Issue list contains %d issues, %d are due',
+            count($this->issues),
+            count($due)
+        );
 
         return $due;
     }
