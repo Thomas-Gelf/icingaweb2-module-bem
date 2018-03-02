@@ -14,6 +14,7 @@ class BemIssue
         'cell_name'             => null,
         'host_name'             => null,
         'object_name'           => null,
+        'is_relevant'           => null,
         'severity'              => null,
         'worst_severity'        => null,
         'slot_set_values'       => null,
@@ -49,6 +50,7 @@ class BemIssue
         $object = new static($cell);
         $object->fillWithDefaultProperties();
         $object->setIcingaObject($icingaObject);
+        $object->set('is_relevant', $cell->wantsIcingaObject($object) ? 'y' : 'n');
 
         $result = $db->fetchRow($object->prepareSelectQuery());
         if ($result) {
@@ -79,6 +81,11 @@ class BemIssue
         }
 
         return $object;
+    }
+
+    public function isRelevant()
+    {
+        return $this->get('is_relevant') === 'y';
     }
 
     /**

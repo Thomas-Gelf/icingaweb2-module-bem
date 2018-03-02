@@ -23,6 +23,7 @@ CREATE TABLE bem_issue (
     'CRITICAL',
     'DOWN'
   ) NOT NULL,
+  is_relevant ENUM('y', 'n') NOT NULL,
   slot_set_values TEXT NOT NULL,
   ts_first_notification BIGINT(20) DEFAULT NULL,
   ts_last_notification BIGINT(20) DEFAULT NULL,
