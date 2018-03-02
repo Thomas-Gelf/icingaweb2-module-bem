@@ -71,10 +71,11 @@ class IdoDb
     protected function fetchProblemServices()
     {
         return $this->db->fetchAll(
-            $this->selectHosts()
-                ->where('hs.current_state > 0')
-                ->where('hs.scheduled_downtime_depth = 0')
-                ->where('hs.problem_has_been_acknowledged = 0')
+            $this->selectServices()
+                ->where('hs.host_state = 0')
+                ->where('ss.current_state > 0')
+                ->where('ss.scheduled_downtime_depth = 0')
+                ->where('ss.problem_has_been_acknowledged = 0')
         );
     }
 
@@ -114,6 +115,7 @@ class IdoDb
             ['ho' => 'icinga_objects'],
             [
                 'id'              => 'ho.object_id',
+                'host_id'         => '(NULL)',
                 'host_name'       => 'ho.name1',
                 'service_name'    => '(NULL)',
                 'state_type'      => 'hs.state_type',
@@ -138,20 +140,29 @@ class IdoDb
             ['so' => 'icinga_objects'],
             [
                 'id'              => 'so.object_id',
+                'host_id'         => 'hs.host_object_id',
                 'host_name'       => 'so.name1',
                 'service_name'    => 'so.name2',
                 'state_type'      => 'ss.state_type',
                 'state'           => 'ss.current_state',
-                'hard_state'      => 'CASE WHEN shs.has_been_checked = 0 OR ss.has_been_checked IS NULL THEN 99'
+                'hard_state'      => 'CASE WHEN ss.has_been_checked = 0 OR ss.has_been_checked IS NULL THEN 99'
                     . ' ELSE CASE WHEN ss.state_type = 1 THEN ss.current_state'
                     . ' ELSE ss.last_hard_state END END',
                 'is_acknowledged' => 'ss.problem_has_been_acknowledged',
                 'is_in_downtime'  => 'CASE WHEN (ss.scheduled_downtime_depth = 0) THEN 0 ELSE 1 END',
-                'output'          => 'hs.output',
+                'output'          => 'ss.output',
             ]
         )->join(
             ['ss' => 'icinga_servicestatus'],
             'so.object_id = ss.service_object_id AND so.is_active = 1',
+            []
+        )->join(
+            ['s' => 'icinga_services'],
+            's.service_object_id = ss.service_object_id',
+            []
+        )->join(
+            ['hs' => 'icinga_hoststatus'],
+            'hs.host_object_id = s.host_object_id',
             []
         );
     }
@@ -189,6 +200,16 @@ class IdoDb
             return;
         }
 
+        $serviceHostIds = [];
+        foreach ($rows as $row) {
+            if ($row->host_id) {
+                if (! array_key_exists($row->host_id, $serviceHostIds)) {
+                    $serviceHostIds[$row->host_id] = [];
+                }
+                $serviceHostIds[$row->host_id][] = $row->id;
+            }
+        }
+
         $query = $this->db->select()->from(
             ['cv' => 'icinga_customvariablestatus'],
             ['cv.object_id', 'cv.varname', 'cv.varvalue']
@@ -200,6 +221,23 @@ class IdoDb
                 : 'service.vars.' . $row->varname;
 
             $rows[$row->object_id]->$key = $row->varvalue;
+        }
+
+        if (empty($serviceHostIds)) {
+            return;
+        }
+
+        $query = $this->db->select()->from(
+            ['cv' => 'icinga_customvariablestatus'],
+            ['cv.object_id', 'cv.varname', 'cv.varvalue']
+        )->where('object_id IN (?)', array_keys($serviceHostIds));
+
+        foreach ($this->db->fetchAll($query) as $row) {
+            $key = 'host.vars.' . $row->varname;
+
+            foreach ($serviceHostIds[$row->object_id] as $id) {
+                $rows[$id]->$key = $row->varvalue;
+            }
         }
     }
 
