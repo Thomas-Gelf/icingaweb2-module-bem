@@ -97,7 +97,7 @@ class MainRunner
         $this->isReady = false;
         try {
             Logger::info('Resetting BEM main runner for %s', $this->cellName);
-            $this->cell->db()->closeConnection();
+            $this->cell->disconnect();
             $this->maxParallel = $this->cell->getMaxParallelRunners();
             $this->issues = new BemIssues($this->cell);
             $this->stats = new CellStats($this->cell);

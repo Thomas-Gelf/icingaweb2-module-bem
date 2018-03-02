@@ -315,6 +315,13 @@ class CellConfig
         }
     }
 
+    public function disconnect()
+    {
+        if ($this->db !== null) {
+            $this->db->closeConnection();
+        }
+    }
+
     public function db()
     {
         return $this->db;
