@@ -57,6 +57,8 @@ class BemIssues
     public function refreshFromIdo(IdoDb $ido)
     {
         $seen = [];
+        // Make sure we loaded our issues
+        $this->issues();
         foreach ($ido->fetchIssues($this->cell) as $issue) {
             if (! $issue->isRelevant()) {
                 continue;
