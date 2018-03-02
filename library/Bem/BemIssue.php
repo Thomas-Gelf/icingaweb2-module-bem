@@ -60,6 +60,14 @@ class BemIssue
         return $object;
     }
 
+    public static function load(CellConfig $cell, $host, $object)
+    {
+        return static::forDbRow(
+            $cell->db()->fetchRow(static::prepareSelectQueryFor($cell, $host, $object)),
+            $cell
+        );
+    }
+
     public static function forDbRow($row, CellConfig $cell)
     {
         $object = new static($cell);
@@ -89,6 +97,15 @@ class BemIssue
     public function isDueIn($dueTime)
     {
         return $this->get('ts_next_notification') <= $dueTime;
+    }
+
+    public function getUrlParams()
+    {
+        return [
+            'host'   => $this->get('host_name'),
+            'object' => $this->get('object_name'),
+            'cell'   => $this->cell->getName()
+        ];
     }
 
     public function store()
@@ -161,27 +178,32 @@ class BemIssue
             ->where('ci_name_checksum = ?', $this->getKey());
     }
 
-    protected static function calculateCiChecksum(CellConfig $config, $host, $service = null)
+    protected static function prepareSelectQueryFor(CellConfig $cell, $host, $object)
     {
-        $parts = [
-            $config->getName(),
-            $host
-        ];
+        return $cell->db()->select()
+            ->from('bem_issue')
+            ->where('ci_name_checksum = ?', static::calculateChecksum(
+                $cell,
+                $host,
+                $object
+            ));
+    }
 
-        if ($service !== null) {
-            $parts[] = $service;
-        }
-
-        return sha1(implode('!', $parts), true);
+    protected static function calculateChecksum(CellConfig $cell, $host, $object)
+    {
+        return sha1(implode('!', [
+            $cell->getName(),
+            $host, $object
+        ]), true);
     }
 
     protected function recalculateCiCheckSum()
     {
-        $this->set('ci_name_checksum', sha1(implode('!', [
-            $this->cell->getName(),
+        $this->set('ci_name_checksum', static::calculateChecksum(
+            $this->cell,
             $this->get('host_name'),
             $this->get('object_name')
-        ]), true));
+        ));
     }
 
     public function setIcingaObject($object)
