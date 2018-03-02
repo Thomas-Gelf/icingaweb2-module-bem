@@ -4,6 +4,7 @@ namespace Icinga\Module\Bem;
 
 use Icinga\Data\ResourceFactory;
 use Icinga\Exception\IcingaException;
+use Icinga\Module\Bem\Config\CellConfig;
 use Icinga\Module\Monitoring\Backend\MonitoringBackend;
 use Zend_Db_Adapter_Abstract as DbAdapter;
 
@@ -34,6 +35,49 @@ class IdoDb
         return $this->db;
     }
 
+    /**
+     * @return BemIssue[]
+     */
+    public function fetchIssues(CellConfig $cell)
+    {
+        $issues = [];
+        $objects = [];
+        foreach ($this->fetchProblemHosts() as $object) {
+            $objects[$object->id] = $object;
+        }
+        foreach ($this->fetchProblemServices() as $object) {
+            $objects[$object->id] = $object;
+        }
+
+        $this->enrichRowsWithVars($objects);
+
+        foreach ($objects as $object) {
+            $issues[] = BemIssue::forIcingaObject($object, $cell);
+        }
+
+        return $issues;
+    }
+
+    protected function fetchProblemHosts()
+    {
+        return $this->db->fetchAll(
+            $this->selectHosts()
+                ->where('hs.current_state > 0')
+                ->where('hs.scheduled_downtime_depth = 0')
+                ->where('hs.problem_has_been_acknowledged = 0')
+        );
+    }
+
+    protected function fetchProblemServices()
+    {
+        return $this->db->fetchAll(
+            $this->selectHosts()
+                ->where('hs.current_state > 0')
+                ->where('hs.scheduled_downtime_depth = 0')
+                ->where('hs.problem_has_been_acknowledged = 0')
+        );
+    }
+
     public function getStateRowFor($host, $service = null)
     {
         if ($service === null) {
@@ -45,26 +89,7 @@ class IdoDb
 
     public function getHostStateRow($host)
     {
-        $query = $this->db->select()->from(
-            ['ho' => 'icinga_objects'],
-            [
-                'id'              => 'ho.object_id',
-                'host_name'       => 'ho.name1',
-                'service_name'    => '(NULL)',
-                'state_type'      => 'hs.state_type',
-                'state'           => 'hs.current_state',
-                'hard_state'      => 'CASE WHEN hs.has_been_checked = 0 OR hs.has_been_checked IS NULL THEN 99'
-                                   . ' ELSE CASE WHEN hs.state_type = 1 THEN hs.current_state'
-                                   . ' ELSE hs.last_hard_state END END',
-                'is_acknowledged' => 'hs.problem_has_been_acknowledged',
-                'is_in_downtime'  => 'CASE WHEN (hs.scheduled_downtime_depth = 0) THEN 0 ELSE 1 END',
-                'output'          => 'hs.output',
-            ]
-        )->join(
-            ['hs' => 'icinga_hoststatus'],
-            'ho.object_id = hs.host_object_id AND ho.is_active = 1',
-            []
-        )->where('ho.name1 = ?', $host);
+        $query = $this->selectHosts()->where('ho.name1 = ?', $host);
 
         return $this->enrichRowWithVars(
             $this->assertValidRow(
@@ -76,7 +101,40 @@ class IdoDb
 
     public function getServiceStateRow($host, $service)
     {
-        $query = $this->db->select()->from(
+        $query = $this->selectServices()
+            ->where('so.name1 = ', $host)
+            ->where('so.name2 = ?', $service);
+
+        return $this->enrichRowWithVars($this->db->fetchRow($query));
+    }
+
+    protected function selectHosts()
+    {
+        return $this->db->select()->from(
+            ['ho' => 'icinga_objects'],
+            [
+                'id'              => 'ho.object_id',
+                'host_name'       => 'ho.name1',
+                'service_name'    => '(NULL)',
+                'state_type'      => 'hs.state_type',
+                'state'           => 'hs.current_state',
+                'hard_state'      => 'CASE WHEN hs.has_been_checked = 0 OR hs.has_been_checked IS NULL THEN 99'
+                    . ' ELSE CASE WHEN hs.state_type = 1 THEN hs.current_state'
+                    . ' ELSE hs.last_hard_state END END',
+                'is_acknowledged' => 'hs.problem_has_been_acknowledged',
+                'is_in_downtime'  => 'CASE WHEN (hs.scheduled_downtime_depth = 0) THEN 0 ELSE 1 END',
+                'output'          => 'hs.output',
+            ]
+        )->join(
+            ['hs' => 'icinga_hoststatus'],
+            'ho.object_id = hs.host_object_id AND ho.is_active = 1',
+            []
+        );
+    }
+
+    protected function selectServices()
+    {
+        return $this->db->select()->from(
             ['so' => 'icinga_objects'],
             [
                 'id'              => 'so.object_id',
@@ -85,8 +143,8 @@ class IdoDb
                 'state_type'      => 'ss.state_type',
                 'state'           => 'ss.current_state',
                 'hard_state'      => 'CASE WHEN shs.has_been_checked = 0 OR ss.has_been_checked IS NULL THEN 99'
-                                   . ' ELSE CASE WHEN ss.state_type = 1 THEN ss.current_state'
-                                   . ' ELSE ss.last_hard_state END END',
+                    . ' ELSE CASE WHEN ss.state_type = 1 THEN ss.current_state'
+                    . ' ELSE ss.last_hard_state END END',
                 'is_acknowledged' => 'ss.problem_has_been_acknowledged',
                 'is_in_downtime'  => 'CASE WHEN (ss.scheduled_downtime_depth = 0) THEN 0 ELSE 1 END',
                 'output'          => 'hs.output',
@@ -95,9 +153,7 @@ class IdoDb
             ['ss' => 'icinga_servicestatus'],
             'so.object_id = ss.service_object_id AND so.is_active = 1',
             []
-        )->where('so.name1 = ', $host)->where('so.name2 = ?', $service);
-
-        return $this->enrichRowWithVars($this->db->fetchRow($query));
+        );
     }
 
     protected function assertValidRow($row, $host, $service = null)
@@ -125,6 +181,26 @@ class IdoDb
         }
 
         return $row;
+    }
+
+    protected function enrichRowsWithVars($rows)
+    {
+        if (empty($rows)) {
+            return;
+        }
+
+        $query = $this->db->select()->from(
+            ['cv' => 'icinga_customvariablestatus'],
+            ['cv.object_id', 'cv.varname', 'cv.varvalue']
+        )->where('object_id IN (?)', array_keys($rows));
+
+        foreach ($this->db->fetchAll($query) as $row) {
+            $key = $rows[$row->object_id]->service_name === null
+                ? 'host.vars.' . $row->varname
+                : 'service.vars.' . $row->varname;
+
+            $rows[$row->object_id]->$key = $row->varvalue;
+        }
     }
 
     /**
