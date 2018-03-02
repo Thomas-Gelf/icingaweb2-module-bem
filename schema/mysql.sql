@@ -1,5 +1,6 @@
 CREATE TABLE bem_issue (
-  ci_name_checksum VARBINARY(20) NOT NULL COMMENT 'sha1(host), sha1(host!service)',
+  ci_name_checksum VARBINARY(20) NOT NULL COMMENT 'sha1(cell!host!object)',
+  cell_name VARCHAR(255) NOT NULL,
   host_name VARCHAR(255) NOT NULL,
   object_name VARCHAR(255) NOT NULL,
   severity ENUM(
@@ -22,8 +23,9 @@ CREATE TABLE bem_issue (
     'CRITICAL',
     'DOWN'
   ) NOT NULL,
-  ts_first_notification BIGINT(20) NOT NULL,
-  ts_last_notification BIGINT(20) NOT NULL,
+  slot_set_values TEXT NOT NULL,
+  ts_first_notification BIGINT(20) DEFAULT NULL,
+  ts_last_notification BIGINT(20) DEFAULT NULL,
   ts_next_notification BIGINT(20) NOT NULL,
   cnt_notifications BIGINT(20) NOT NULL,
   PRIMARY KEY (ci_name_checksum)
@@ -32,7 +34,7 @@ CREATE TABLE bem_issue (
 CREATE TABLE bem_notification_log (
   id BIGINT(20) UNSIGNED AUTO_INCREMENT NOT NULL,
   bem_event_id BIGINT(20) UNSIGNED DEFAULT NULL, -- last_bem_event_id ?
-  ci_name_checksum VARBINARY(20) NOT NULL, -- sha1("${host_name}!${object_name}")
+  ci_name_checksum VARBINARY(20) NOT NULL,
   host_name VARCHAR(255) NOT NULL,
   object_name VARCHAR(255) NOT NULL,
   severity ENUM(
