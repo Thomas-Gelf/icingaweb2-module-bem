@@ -120,6 +120,7 @@ class ImpactPoster
             '-b' => $this->getSlotSetValueString($notification),
             // milliseconds to wait for message answer (default is 30,000)
             '-w' => 5000,
+            '-l' => $this->getPrefixDir(),
             // Verbose. We use this to get the Event ID
             // Output would show a line like: Message #1 - Evtid = 10308244
             '-v',
