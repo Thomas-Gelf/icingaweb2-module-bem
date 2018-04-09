@@ -40,6 +40,11 @@ trait PropertyContainer
         return $this->properties[$property];
     }
 
+    /**
+     * @param $key
+     * @return $this
+     * @throws IE
+     */
     protected function assertPropertyExists($key)
     {
         if (! array_key_exists($key, $this->properties)) {
@@ -103,6 +108,7 @@ trait PropertyContainer
      * @param mixed $key
      *
      * @return mixed
+     * @throws IE
      */
     public function __get($key)
     {
@@ -112,10 +118,11 @@ trait PropertyContainer
     /**
      * Magic setter
      *
-     * @param  string  $key  Key
-     * @param  mixed   $val  Value
+     * @param  string $key Key
+     * @param  mixed $val Value
      *
      * @return void
+     * @throws IE
      */
     public function __set($key, $val)
     {
@@ -153,6 +160,7 @@ trait PropertyContainer
      *
      * @param  array|\stdClass[] $properties
      * @return $this
+     * @throws IE
      */
     public function setProperties($properties)
     {
@@ -167,6 +175,7 @@ trait PropertyContainer
      * Return an array with all object properties
      *
      * @return array
+     * @throws IE
      */
     public function getProperties()
     {
@@ -193,6 +202,7 @@ trait PropertyContainer
      * Return all properties that changed since object creation
      *
      * @return array
+     * @throws IE
      */
     public function getModifiedProperties()
     {

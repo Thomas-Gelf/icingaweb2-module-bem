@@ -35,6 +35,10 @@ class ImpactPosterResultHandler
         $this->runner = $runner;
     }
 
+    /**
+     * @param $commandLine
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function start($commandLine)
     {
         $this->startTime = Util::timestampWithMilliseconds();
@@ -44,6 +48,13 @@ class ImpactPosterResultHandler
             ->set('system_host_name', gethostname());
     }
 
+    /**
+     * @param $exitCode
+     * @param $termSignal
+     * @param Process $process
+     * @throws \Icinga\Exception\IcingaException
+     * @throws \Zend_Db_Adapter_Exception
+     */
     public function stop($exitCode, $termSignal, Process $process)
     {
         $n = $this->notification;
@@ -69,6 +80,10 @@ class ImpactPosterResultHandler
         }
     }
 
+    /**
+     * @throws \Icinga\Exception\IcingaException
+     * @throws \Zend_Db_Adapter_Exception
+     */
     protected function updateIssue()
     {
         $i = $this->issue;

@@ -38,6 +38,10 @@ class BemIssue
         $this->cell = $cell;
     }
 
+    /**
+     * @return mixed
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function getKey()
     {
         return $this->get('ci_name_checksum');
@@ -82,6 +86,10 @@ class BemIssue
         return $object;
     }
 
+    /**
+     * @return bool
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function isRelevant()
     {
         return $this->get('is_relevant') === 'y';
@@ -100,11 +108,20 @@ class BemIssue
         return ! $this->hasBeenStored;
     }
 
+    /**
+     * @param $dueTime
+     * @return bool
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function isDueIn($dueTime)
     {
         return $this->get('ts_next_notification') <= $dueTime;
     }
 
+    /**
+     * @return array
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function getUrlParams()
     {
         return [
@@ -114,6 +131,10 @@ class BemIssue
         ];
     }
 
+    /**
+     * @throws \Icinga\Exception\IcingaException
+     * @throws \Zend_Db_Adapter_Exception
+     */
     public function store()
     {
         if ($this->hasBeenModified()) {
@@ -126,6 +147,9 @@ class BemIssue
         }
     }
 
+    /**
+     * @throws \Icinga\Exception\IcingaException
+     */
     protected function checkWorstSeverity()
     {
         // TODO: correct implementation, even if currently unused
@@ -135,6 +159,9 @@ class BemIssue
         }
     }
 
+    /**
+     * @throws \Zend_Db_Adapter_Exception
+     */
     protected function insert()
     {
         if ($this->cell->db()->insert(
@@ -145,6 +172,10 @@ class BemIssue
         }
     }
 
+    /**
+     * @throws \Icinga\Exception\IcingaException
+     * @throws \Zend_Db_Adapter_Exception
+     */
     protected function update()
     {
         $db = $this->cell->db();
@@ -157,6 +188,9 @@ class BemIssue
         }
     }
 
+    /**
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function delete()
     {
         if ($this->cell->db()->delete(
@@ -172,11 +206,19 @@ class BemIssue
         }
     }
 
+    /**
+     * @return string
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function createWhere()
     {
         return $this->cell->db()->quoteInto('ci_name_checksum = ?', $this->getKey());
     }
 
+    /**
+     * @return \Zend_Db_Select
+     * @throws \Icinga\Exception\IcingaException
+     */
     protected function prepareSelectQuery()
     {
         return $this->cell->db()->select()
@@ -184,6 +226,12 @@ class BemIssue
             ->where('ci_name_checksum = ?', $this->getKey());
     }
 
+    /**
+     * @param CellConfig $cell
+     * @param $host
+     * @param $object
+     * @return \Zend_Db_Select
+     */
     protected static function prepareSelectQueryFor(CellConfig $cell, $host, $object)
     {
         return $cell->db()->select()
@@ -195,6 +243,12 @@ class BemIssue
             ));
     }
 
+    /**
+     * @param CellConfig $cell
+     * @param $host
+     * @param $object
+     * @return string
+     */
     protected static function calculateChecksum(CellConfig $cell, $host, $object)
     {
         return sha1(implode('!', [
@@ -203,6 +257,9 @@ class BemIssue
         ]), true);
     }
 
+    /**
+     * @throws \Icinga\Exception\IcingaException
+     */
     protected function recalculateCiCheckSum()
     {
         $this->set('ci_name_checksum', static::calculateChecksum(
@@ -212,6 +269,12 @@ class BemIssue
         ));
     }
 
+    /**
+     * @param $object
+     * @return $this
+     * @throws \Icinga\Exception\ConfigurationError
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function setIcingaObject($object)
     {
         $this->set('cell_name', $this->cell->getName());
@@ -232,6 +295,11 @@ class BemIssue
         return $this;
     }
 
+    /**
+     * @param null $timestampMs
+     * @return $this
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function scheduleNextNotification($timestampMs = null)
     {
         if ($timestampMs === null) {
@@ -246,6 +314,10 @@ class BemIssue
         return $this;
     }
 
+    /**
+     * @return array|mixed
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function getSlotSetValues()
     {
         if ($this->slotSetValues === null) {

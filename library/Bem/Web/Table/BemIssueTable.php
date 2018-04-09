@@ -31,6 +31,7 @@ class BemIssueTable extends ZfQueryBasedTable
     /**
      * @param CellConfig $cell
      * @return static
+     * @throws \Icinga\Exception\ProgrammingError
      */
     public static function forCell(CellConfig $cell)
     {

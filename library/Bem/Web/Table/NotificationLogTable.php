@@ -47,6 +47,7 @@ class NotificationLogTable extends ZfQueryBasedTable
      *
      * @param BemIssue $issue
      * @return $this;
+     * @throws \Icinga\Exception\IcingaException
      */
     public function filterIssue(BemIssue $issue)
     {

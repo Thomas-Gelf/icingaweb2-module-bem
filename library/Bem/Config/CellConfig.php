@@ -67,12 +67,19 @@ class CellConfig
         return (int) $this->config->get('main', 'max_parallel_runners', 3);
     }
 
+    /**
+     * @throws \Icinga\Exception\NotReadableError
+     */
     protected function refreshConfig()
     {
         $this->config = Config::fromIni($this->config->getConfigFile());
         $this->triggerFreshConfig();
     }
 
+    /**
+     * @return bool
+     * @throws \Icinga\Exception\NotReadableError
+     */
     public function checkForFreshConfig()
     {
         if ($this->configHasBeenChangedOnDisk()) {
@@ -91,6 +98,11 @@ class CellConfig
         }
     }
 
+    /**
+     * @param $object
+     * @return mixed
+     * @throws ConfigurationError
+     */
     public function calculateSeverityForIcingaObject($object)
     {
         $map = [
@@ -126,6 +138,7 @@ class CellConfig
                 }
             }
         }
+
         return $state;
     }
 

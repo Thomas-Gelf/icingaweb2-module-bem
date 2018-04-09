@@ -18,6 +18,11 @@ class NotificationDetails extends NameValueTable
 
     protected $service;
 
+    /**
+     * NotificationDetails constructor.
+     * @param BemNotification $notification
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function __construct(BemNotification $notification)
     {
         $this->notification = $notification;
@@ -25,6 +30,9 @@ class NotificationDetails extends NameValueTable
         $this->service = $notification->get('object_name');
     }
 
+    /**
+     * @throws \Icinga\Exception\IcingaException
+     */
     protected function assemble()
     {
         $n = $this->notification;

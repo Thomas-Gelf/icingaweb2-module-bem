@@ -18,6 +18,11 @@ class IssueDetails extends NameValueTable
 
     protected $service;
 
+    /**
+     * IssueDetails constructor.
+     * @param BemIssue $issue
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function __construct(BemIssue $issue)
     {
         $this->issue = $issue;
@@ -25,6 +30,9 @@ class IssueDetails extends NameValueTable
         $this->service = $issue->get('object_name');
     }
 
+    /**
+     * @throws \Icinga\Exception\IcingaException
+     */
     protected function assemble()
     {
         $i = $this->issue;

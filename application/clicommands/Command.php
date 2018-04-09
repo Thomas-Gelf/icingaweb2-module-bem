@@ -16,6 +16,7 @@ class Command extends CliCommand
 
     /**
      * @return MainRunner
+     * @throws \Icinga\Exception\MissingParameterException
      */
     protected function getRunner()
     {
