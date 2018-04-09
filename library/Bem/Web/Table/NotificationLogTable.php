@@ -20,12 +20,13 @@ class NotificationLogTable extends ZfQueryBasedTable
 
     protected $searchColumns = [
         'host_name',
-        'service_name',
+        'object_name',
     ];
 
     /**
      * @param CellConfig $cell
      * @return static
+     * @throws \Icinga\Exception\ProgrammingError
      */
     public static function forCell(CellConfig $cell)
     {
