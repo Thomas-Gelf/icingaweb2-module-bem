@@ -54,25 +54,34 @@ class BemIssues
         return $this->issues;
     }
 
+    /**
+     * @param IdoDb $ido
+     * @throws \Icinga\Exception\IcingaException
+     * @throws \Zend_Db_Adapter_Exception
+     */
     public function refreshFromIdo(IdoDb $ido)
     {
         $seen = [];
         // Make sure we loaded our issues
         $this->issues();
         foreach ($ido->fetchIssues($this->cell) as $issue) {
-            if (! $issue->isRelevant()) {
-                continue;
-            }
             if ($this->has($issue)) {
+                $relevant = $issue->isRelevant();
                 if ($issue->isNew()) {
+                    if (! $relevant) {
+                        continue;
+                    }
                     $issue->scheduleNextNotification();
                 }
                 $knownIssue = $this->getWithChecksum($issue->getKey());
                 if ($issue->get('severity') !== $knownIssue->get('severity')) {
-                    $this->add($issue);
+                    $issue->scheduleNextNotification();
+                }
+                if (! $relevant) {
+                    $issue->delete();
                 }
                 $seen[] = $issue->getKey();
-            } elseif ($issue->isRelevant()) {
+            } elseif ($relevant) {
                 $issue->scheduleNextNotification();
                 $this->add($issue);
                 $seen[] = $issue->getKey();
@@ -96,6 +105,7 @@ class BemIssues
     /**
      * @param BemIssue $issue
      * @return bool
+     * @throws \Icinga\Exception\IcingaException
      */
     public function has(BemIssue $issue)
     {
@@ -114,6 +124,8 @@ class BemIssues
     /**
      * @param BemIssue $issue
      * @return $this
+     * @throws \Icinga\Exception\IcingaException
+     * @throws \Zend_Db_Adapter_Exception
      */
     public function add(BemIssue $issue)
     {
@@ -139,6 +151,7 @@ class BemIssues
     /**
      * @param BemIssue $issue
      * @return $this
+     * @throws \Icinga\Exception\IcingaException
      */
     public function delete(BemIssue $issue)
     {
@@ -164,6 +177,7 @@ class BemIssues
      * All issues that should be sent within the next minute
      *
      * @return BemIssue[]
+     * @throws \Icinga\Exception\IcingaException
      */
     public function getDueIssues()
     {

@@ -48,6 +48,13 @@ class ImpactPoster
         // TODO: msend -l (home) -z
     }
 
+    /**
+     * @param BemIssue $issue
+     * @param LoopInterface|null $loop
+     * @param MainRunner|null $runner
+     * @return $this
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function send(BemIssue $issue, LoopInterface $loop = null, MainRunner $runner = null)
     {
         $notification = BemNotification::forIssue($issue);
