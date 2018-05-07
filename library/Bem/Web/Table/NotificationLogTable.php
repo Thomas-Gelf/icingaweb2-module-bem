@@ -19,8 +19,7 @@ class NotificationLogTable extends ZfQueryBasedTable
     ];
 
     protected $searchColumns = [
-        'host_name',
-        'object_name',
+        'ci_name',
     ];
 
     /**
@@ -56,12 +55,12 @@ class NotificationLogTable extends ZfQueryBasedTable
         return $this;
     }
 
-    protected function renderObjectName($host, $service = null)
+    protected function renderObjectName($ciName)
     {
-        if ($service === null) {
-            return $host;
+        if (strpos($ciName, '!') === false) {
+            return $ciName;
         } else {
-            return "$host: $service";
+            return implode(': ', preg_split('/!/', $ciName, 2));
         }
     }
 
@@ -73,7 +72,7 @@ class NotificationLogTable extends ZfQueryBasedTable
         return $this::row([
             DateFormatter::formatTime($ts),
             Link::create(
-                $this->renderObjectName($row->host_name, $row->object_name),
+                BemIssue::makeNiceCiName($row->ci_name),
                 'bem/notification',
                 ['id' => $row->id, 'cell' => $this->cell->getName()]
             )
@@ -85,8 +84,7 @@ class NotificationLogTable extends ZfQueryBasedTable
         return $this->cell->db()->select()->from('bem_notification_log', [
             'id',
             'ts_notification',
-            'host_name',
-            'object_name',
+            'ci_name',
             'severity',
         ])->order('ts_notification DESC');
     }

@@ -27,22 +27,21 @@ class IssueController extends ControllerBase
 
             return;
         }
-        $this->addTitle(
-            '%s: %s',
-            $issue->get('host_name'),
-            $issue->get('object_name')
-        );
+        $this->addTitle($issue->getNiceName());
         $this->content()->add(new IssueDetails($issue));
     }
 
+    /**
+     * @throws \Icinga\Exception\IcingaException
+     * @throws \Icinga\Exception\ProgrammingError
+     */
     public function notificationsAction()
     {
         $this->setAutorefreshInterval(10);
         $issue = $this->loadIssue();
         $this->addTitle(
-            'Notifications for %s: %s',
-            $issue->get('host_name'),
-            $issue->get('object_name')
+            'Notifications for %s',
+            $issue->getNiceName()
         );
         $this->addIssueTabs($issue);
         $this->content()->add(
@@ -51,6 +50,12 @@ class IssueController extends ControllerBase
         );
     }
 
+    /**
+     * @param BemIssue $issue
+     * @throws \Icinga\Exception\Http\HttpNotFoundException
+     * @throws \Icinga\Exception\IcingaException
+     * @throws \Icinga\Exception\ProgrammingError
+     */
     protected function addIssueTabs(BemIssue $issue)
     {
         $tabs = $this->tabs()->add('index', [
@@ -70,12 +75,16 @@ class IssueController extends ControllerBase
         $tabs->activate($this->getRequest()->getActionName());
     }
 
+    /**
+     * @return BemIssue
+     * @throws \Icinga\Exception\MissingParameterException
+     */
     protected function loadIssue()
     {
         return BemIssue::load(
             $this->requireCell(),
             $this->params->getRequired('host'),
-            $this->params->getRequired('object')
+            $this->params->get('service')
         );
     }
 }

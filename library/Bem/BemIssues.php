@@ -3,6 +3,7 @@
 namespace Icinga\Module\Bem;
 
 use Icinga\Application\Logger;
+use Icinga\Date\DateFormatter;
 use Icinga\Module\Bem\Config\CellConfig;
 use Zend_Db_Adapter_Abstract as DbAdapter;
 
@@ -61,30 +62,30 @@ class BemIssues
      */
     public function refreshFromIdo(IdoDb $ido)
     {
+        // TODO: check programstate, delay operation when not ready
         $seen = [];
         // Make sure we loaded our issues
         $this->issues();
         foreach ($ido->fetchIssues($this->cell) as $issue) {
             $relevant = $issue->isRelevant();
             if ($this->has($issue)) {
-                if ($issue->isNew()) {
-                    if (! $relevant) {
-                        continue;
-                    }
-                    $issue->scheduleNextNotification();
-                }
+                Logger::debug('We have the issue');
                 $knownIssue = $this->getWithChecksum($issue->getKey());
-                if ($issue->get('severity') !== $knownIssue->get('severity')) {
-                    $issue->scheduleNextNotification();
+                if ($this->scheduleIfModified($knownIssue, $issue)) {
+                    $seen[] = $issue->getKey();
                 }
-                if (! $relevant) {
-                    $issue->delete();
+                if ($relevant) {
+                    $seen[] = $issue->getKey();
+                } else {
+                    Logger::debug('Issue for %s is longer relevant', $issue->getNiceName());
                 }
-                $seen[] = $issue->getKey();
             } elseif ($relevant) {
+                Logger::debug('Got a new issue for %s', $issue->getNiceName());
                 $issue->scheduleNextNotification();
                 $this->add($issue);
                 $seen[] = $issue->getKey();
+            } else {
+                Logger::debug('Issue for %s is new, but not relevant', $issue->getNiceName());
             }
         }
 
@@ -97,8 +98,40 @@ class BemIssues
         );
 
         foreach ($obsolete as $key) {
-            // TODO: mark as obsolete, so we could send one last notification
-            $this->delete($this->issues[$key]);
+            $issue = $this->issues[$key];
+            list($host, $service) = BemIssue::splitCiName($issue->get('ci_name'));
+            $current = $ido->getStateRowFor($host, $service);
+            if ($current === false) {
+                Logger::debug('Related object for removed state not found for %s', $issue->getNiceName());
+            } else {
+                $this->scheduleIfModified(
+                    $issue,
+                    BemIssue::forIcingaObject($current, $this->cell)
+                );
+            }
+        }
+    }
+
+    /**
+     * @param BemIssue $knownIssue
+     * @param BemIssue $currentIssue
+     * @return bool
+     * @throws \Icinga\Exception\IcingaException
+     */
+    protected function scheduleIfModified(BemIssue $knownIssue, BemIssue $currentIssue)
+    {
+        if ($currentIssue->get('severity') !== $knownIssue->get('severity')) {
+            $knownIssue->set('severity', $currentIssue->get('severity'));
+            $knownIssue->set('slot_set_values', $currentIssue->get('slot_set_values'));
+            Logger::debug(
+                'Severity for %s has changed, scheduling notification',
+                $currentIssue->getNiceName()
+            );
+            $knownIssue->scheduleNextNotification();
+
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -156,6 +189,17 @@ class BemIssues
     public function delete(BemIssue $issue)
     {
         $issue->delete();
+
+        return $this->forget($issue);
+    }
+
+    /**
+     * @param BemIssue $issue
+     * @return $this
+     * @throws \Icinga\Exception\IcingaException
+     */
+    public function forget(BemIssue $issue)
+    {
         if ($this->has($issue)) {
             unset($this->issues[$issue->getKey()]);
         }
@@ -190,9 +234,10 @@ class BemIssues
         }
 
         Logger::debug(
-            'Issue list contains %d issues, %d are due',
+            'Issue list contains %d issues, %d are due at %s',
             count($this->issues),
-            count($due)
+            count($due),
+            DateFormatter::formatDateTime($dueTime / 1000)
         );
 
         return $due;

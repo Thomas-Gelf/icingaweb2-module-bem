@@ -87,15 +87,21 @@ class ImpactPosterResultHandler
     protected function updateIssue()
     {
         $i = $this->issue;
-        $count = $i->get('cnt_notifications');
-        $i->set('ts_last_notification', $this->startTime);
-        if ((int) $count === 0) {
-            $i->set('ts_first_notification', $this->startTime);
-        }
 
-        $i->set('cnt_notifications', $count + 1);
-        $i->set('ts_next_notification', $this->notification->calculateNextNotification());
-        $i->store();
+        if ($i->isProblem()) {
+            $count = $i->get('cnt_notifications');
+            $i->set('ts_last_notification', $this->startTime);
+            if ((int) $count === 0) {
+                $i->set('ts_first_notification', $this->startTime);
+            }
+
+            $i->set('cnt_notifications', $count + 1);
+            $i->set('ts_next_notification', $this->notification->calculateNextNotification());
+            $i->store();
+        } else {
+            $i->delete();
+            $this->runner->forgetIssue($i);
+        }
     }
 
     public function extractEventId()

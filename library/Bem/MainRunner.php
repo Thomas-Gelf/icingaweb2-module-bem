@@ -74,6 +74,15 @@ class MainRunner
     }
 
     /**
+     * @param BemIssue $issue
+     * @throws \Icinga\Exception\IcingaException
+     */
+    public function forgetIssue(BemIssue $issue)
+    {
+        $this->issues->forget($issue);
+    }
+
+    /**
      * Run the main loop
      */
     public function run()

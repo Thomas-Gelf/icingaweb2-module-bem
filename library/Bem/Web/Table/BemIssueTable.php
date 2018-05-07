@@ -2,10 +2,8 @@
 
 namespace Icinga\Module\Bem\Web\Table;
 
-use dipl\Html\Html;
 use dipl\Html\Link;
 use dipl\Web\Table\ZfQueryBasedTable;
-use Icinga\Date\DateFormatter;
 use Icinga\Module\Bem\Config\CellConfig;
 use Icinga\Module\Bem\Util;
 use Icinga\Module\Bem\Web\Widget\NextNotificationRenderer;
@@ -24,8 +22,7 @@ class BemIssueTable extends ZfQueryBasedTable
 
     protected $searchColumns = [
         'severity',
-        'host_name',
-        'object_name',
+        'ci_name',
     ];
 
     /**
@@ -52,29 +49,28 @@ class BemIssueTable extends ZfQueryBasedTable
         return ['Host/Service', 'Severity', 'Cell', 'Scheduled'];
     }
 
-    protected function hostHasChanged($row)
+    protected function renderObjectLink($ci)
     {
-        if ($row->host_name === $this->lastHost) {
-            return false;
+        if (strpos($ci, '!') === false) {
+            return Link::create($ci, 'bem/issue', [
+                'host' => $ci,
+                'cell' => $this->cell->getName()
+            ]);
         } else {
-            $this->lastHost = $row->host_name;
-            return true;
-        }
-    }
+            list($host, $service) = preg_split('/!/', $ci, 2);
 
-    protected function renderObjectLink($host, $object)
-    {
-        return Link::create("$host: $object", 'bem/issue', [
-            'host'   => $host,
-            'object' => $object,
-            'cell'   => $this->cell->getName()
-        ]);
+            return Link::create("$host: $service", 'bem/issue', [
+                'host'    => $host,
+                'service' => $service,
+                'cell'    => $this->cell->getName()
+            ]);
+        }
     }
 
     public function renderRow($row)
     {
         return $this::row([
-            $this->renderObjectLink($row->host_name, $row->object_name),
+            $this->renderObjectLink($row->ci_name),
             $row->severity,
             $row->cell_name,
             new NextNotificationRenderer($row->ts_next_notification)
@@ -87,10 +83,9 @@ class BemIssueTable extends ZfQueryBasedTable
     {
         return $this->cell->db()->select()->from('bem_issue', [
             'cell_name',
-            'host_name',
-            'object_name',
+            'ci_name',
             'severity',
             'ts_next_notification'
-        ])->order('host_name')->order('object_name');
+        ])->order('host_name')->order('ci_name');
     }
 }

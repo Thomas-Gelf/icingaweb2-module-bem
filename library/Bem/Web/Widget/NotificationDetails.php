@@ -5,6 +5,7 @@ namespace Icinga\Module\Bem\Web\Widget;
 use dipl\Html\Html;
 use dipl\Translation\TranslationHelper;
 use dipl\Web\Widget\NameValueTable;
+use Icinga\Module\Bem\BemIssue;
 use Icinga\Module\Bem\BemNotification;
 use Icinga\Module\Bem\Process\ImpactPosterExitCodes;
 
@@ -26,8 +27,7 @@ class NotificationDetails extends NameValueTable
     public function __construct(BemNotification $notification)
     {
         $this->notification = $notification;
-        $this->host = $notification->get('host_name');
-        $this->service = $notification->get('object_name');
+        list($this->host, $this->servie) = BemIssue::splitCiName($notification->get('ci_name'));
     }
 
     /**

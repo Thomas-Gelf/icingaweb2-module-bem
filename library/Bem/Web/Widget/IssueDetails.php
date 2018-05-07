@@ -26,8 +26,7 @@ class IssueDetails extends NameValueTable
     public function __construct(BemIssue $issue)
     {
         $this->issue = $issue;
-        $this->host = $issue->get('host_name');
-        $this->service = $issue->get('object_name');
+        list($this->host, $this->service) = BemIssue::splitCiName($issue->get('ci_name'));
     }
 
     /**
@@ -59,6 +58,10 @@ class IssueDetails extends NameValueTable
                 )
             ]);
         }
+        $this->addNameValuePairs([
+            'Severity' => $i->get('severity'),
+            'Worst Severity' => $i->get('worst_severity'),
+        ]);
     }
 
     protected function timeAgo($timestamp)

@@ -13,8 +13,7 @@ class BemNotification
     protected $defaultProperties = [
         'bem_event_id'     => null,
         'ci_name_checksum' => null,
-        'host_name'        => null,
-        'object_name'      => null,
+        'ci_name'          => null,
         'severity'         => null,
         'slot_set_values'  => null,
         'ts_notification'  => null,
@@ -39,6 +38,12 @@ class BemNotification
         $this->cell = $cell;
     }
 
+    /**
+     * @param CellConfig $cell
+     * @param $id
+     * @return mixed
+     * @throws NotFoundError
+     */
     public static function loadFromLog(CellConfig $cell, $id)
     {
         $object = new static($cell);
@@ -63,6 +68,10 @@ class BemNotification
         return $object->setProperties($result);
     }
 
+    /**
+     * @param BemIssue $issue
+     * @return static
+     */
     public static function forIssue(BemIssue $issue)
     {
         $object = new static($issue->getCell());
@@ -72,12 +81,16 @@ class BemNotification
         return $object;
     }
 
+    /**
+     * @param BemIssue $issue
+     * @return $this
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function setBemIssueProperties(BemIssue $issue)
     {
         $properties = [
             'ci_name_checksum',
-            'host_name',
-            'object_name',
+            'ci_name',
             'severity',
             'slot_set_values',
         ];
@@ -89,33 +102,10 @@ class BemNotification
         return $this;
     }
 
-    public static function forIcingaObject($icingaObject, CellConfig $cell)
-    {
-        $object = new static($cell);
-        $object->fillWithDefaultProperties();
-        $object->setIcingaObject($icingaObject);
-
-        return $object;
-    }
-
-    public function setIcingaObject($object)
-    {
-        $this->set('host_name', $object->host_name);
-        $this->set('severity', 'CRITICAL');
-        $params = $this->cell->fillParams($object);
-        $this->set('slot_set_values', json_encode($params));
-
-        // TODO: define whether mc_host and mc_object should be required
-        $this->set('host_name', $params['mc_host']);
-        $this->set('object_name', $params['mc_object']);
-        $this->set('ci_name_checksum', sha1(
-            $this->get('host_name') . '!' . $this->get('object_name'),
-            true
-        ));
-
-        return $this;
-    }
-
+    /**
+     * @return array
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function getSlotSetValues()
     {
         if ($this->slotSetValues === null) {
@@ -130,6 +120,12 @@ class BemNotification
         return (array) $this->slotSetValues;
     }
 
+    /**
+     * @param $key
+     * @param null $default
+     * @return mixed|null
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function getSlotSetValue($key, $default = null)
     {
         $values = $this->getSlotSetValues();
@@ -146,6 +142,7 @@ class BemNotification
      * In case we didn't get a valid event ID,
      *
      * @return int
+     * @throws \Icinga\Exception\IcingaException
      */
     public function calculateNextNotification()
     {
@@ -165,6 +162,10 @@ class BemNotification
         return Util::timestampWithMilliseconds() + $mcTimeout * 500;
     }
 
+    /**
+     * @throws \Icinga\Exception\IcingaException
+     * @throws \Zend_Db_Adapter_Exception
+     */
     public function storeToLog()
     {
         $this->cell->db()->insert('bem_notification_log', $this->getProperties());

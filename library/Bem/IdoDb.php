@@ -37,6 +37,7 @@ class IdoDb
 
     /**
      * @return BemIssue[]
+     * @throws IcingaException
      */
     public function fetchIssues(CellConfig $cell)
     {
@@ -84,31 +85,36 @@ class IdoDb
     public function getStateRowFor($host, $service = null)
     {
         if ($service === null) {
-            return $this->getHostStateRow($host);
+            $row = $this->getHostStateRow($host);
         } else {
-            return $this->getServiceStateRow($host, $service);
+            $row = $this->getServiceStateRow($host, $service);
         }
+
+        if ($row === false) {
+            return false;
+        }
+
+        return $this->enrichRowWithVars($row);
     }
 
     public function getHostStateRow($host)
     {
-        $query = $this->selectHosts()->where('ho.name1 = ?', $host);
-
-        return $this->enrichRowWithVars(
-            $this->assertValidRow(
-                $this->db->fetchRow($query),
-                $host
-            )
+        echo $this->selectHosts()->where('ho.name1 = ?', $host) . "\n";
+        return $this->db->fetchRow(
+            $this->selectHosts()->where('ho.name1 = ?', $host)
         );
     }
 
     public function getServiceStateRow($host, $service)
     {
-        $query = $this->selectServices()
-            ->where('so.name1 = ', $host)
-            ->where('so.name2 = ?', $service);
-
-        return $this->enrichRowWithVars($this->db->fetchRow($query));
+        echo $this->selectServices()
+            ->where('so.name1 = ?', $host)
+            ->where('so.name2 = ?', $service) . "\n";
+        return $this->db->fetchRow(
+            $this->selectServices()
+                ->where('so.name1 = ?', $host)
+                ->where('so.name2 = ?', $service)
+        );
     }
 
     protected function selectHosts()
@@ -262,6 +268,7 @@ class IdoDb
      * Borrow the database connection from the monitoring module
      *
      * @return static
+     * @throws \Icinga\Exception\ConfigurationError
      */
     public static function fromMonitoringModule()
     {
