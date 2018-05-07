@@ -65,8 +65,8 @@ class BemIssues
         // Make sure we loaded our issues
         $this->issues();
         foreach ($ido->fetchIssues($this->cell) as $issue) {
+            $relevant = $issue->isRelevant();
             if ($this->has($issue)) {
-                $relevant = $issue->isRelevant();
                 if ($issue->isNew()) {
                     if (! $relevant) {
                         continue;
