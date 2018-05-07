@@ -77,7 +77,7 @@ class BemIssues
                 if ($relevant) {
                     $seen[] = $issue->getKey();
                 } else {
-                    Logger::debug('Issue for %s is longer relevant', $issue->getNiceName());
+                    Logger::debug('Issue for %s is no longer relevant', $issue->getNiceName());
                 }
             } elseif ($relevant) {
                 Logger::debug('Got a new issue for %s', $issue->getNiceName());
