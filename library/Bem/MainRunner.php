@@ -8,6 +8,13 @@ use Icinga\Module\Bem\Config\CellConfig;
 use React\EventLoop\Factory as Loop;
 use SplObjectStorage;
 
+/**
+ * Class MainRunner
+ *
+ * Requires a BEM Cell and keeps it in Sync with the configured IDO instance
+ *
+ * @package Icinga\Module\Bem
+ */
 class MainRunner
 {
     /** @var int */
@@ -39,6 +46,11 @@ class MainRunner
 
     private $isReady = false;
 
+    /**
+     * MainRunner constructor.
+     *
+     * @param $cellName
+     */
     public function __construct($cellName)
     {
         $this->running = new SplObjectStorage();
@@ -47,6 +59,11 @@ class MainRunner
         $this->reset();
     }
 
+    /**
+     * Put the given issue into our run queue
+     *
+     * @param BemIssue $issue
+     */
     protected function enqueue(BemIssue $issue)
     {
         $this->queue[] = $issue;
@@ -56,6 +73,9 @@ class MainRunner
         );
     }
 
+    /**
+     * Run the main loop
+     */
     public function run()
     {
         $loop = $this->loop = Loop::create();
@@ -107,6 +127,9 @@ class MainRunner
         $loop->run();
     }
 
+    /**
+     * Reset all connections, config, issues
+     */
     protected function reset()
     {
         $this->isReady = false;
@@ -130,6 +153,11 @@ class MainRunner
         }
     }
 
+    /**
+     * Enqueue all due issues
+     *
+     * @throws \Icinga\Exception\IcingaException
+     */
     protected function fillQueue()
     {
         if (! empty($this->queue)) {
@@ -144,12 +172,25 @@ class MainRunner
         }
     }
 
+    /**
+     * Refresh current issues by comparing them to those in the IDO
+     *
+     * @throws \Icinga\Exception\IcingaException
+     * @throws \Zend_Db_Adapter_Exception
+     */
     protected function refreshIdoIssues()
     {
         Logger::debug('Refreshing IDO issues');
         $this->issues->refreshFromIdo($this->ido);
     }
 
+    /**
+     * Run the given callable in a fail-safe way
+     *
+     * In case it fails, reset our connections and state, but keep running
+     *
+     * @param $method
+     */
     protected function runFailSafe($method)
     {
         if (! $this->isReady) {
@@ -164,6 +205,9 @@ class MainRunner
         }
     }
 
+    /**
+     * This method shifts issues from the queue to the run-queue
+     */
     protected function runQueue()
     {
         while ($this->isReady && ! $this->isRunQueueFull()) {
@@ -185,6 +229,11 @@ class MainRunner
         }
     }
 
+    /**
+     * Once we sent a notification, remove the related issue froum our run queue
+     *
+     * @param BemIssue $issue
+     */
     public function notifyIssueIsDone(BemIssue $issue)
     {
         $this->running->detach($issue);
@@ -194,16 +243,37 @@ class MainRunner
         );
     }
 
+    /**
+     * Whether our run queue is full
+     *
+     * This happens when too many problems are being notified in parallel
+     *
+     * @return bool
+     */
     protected function isRunQueueFull()
     {
         return $this->countRunningProcesses() >= $this->maxParallel;
     }
 
+    /**
+     * Count notification processes currently running
+     *
+     * @return int
+     */
     public function countRunningProcesses()
     {
         return $this->running->count();
     }
 
+    /**
+     * Triggers our sending operation
+     *
+     * This forks a new process, it's outcome will be processed in an asynchronous
+     * way
+     *
+     * @param BemIssue $issue
+     * @throws \Icinga\Exception\IcingaException
+     */
     protected function sendAndLogEvent(BemIssue $issue)
     {
         $poster = $this->cell->getImpactPoster();
@@ -212,10 +282,14 @@ class MainRunner
             count($this->queue)
         );
 
-        // TODO: When done, detach from running queue!
         $poster->send($issue, $this->loop, $this);
     }
 
+    /**
+     * Lazy-load our main loop
+     *
+     * @return \React\EventLoop\LoopInterface
+     */
     protected function loop()
     {
         if ($this->loop === null) {
