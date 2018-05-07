@@ -6,6 +6,9 @@ use Icinga\Exception\ProgrammingError;
 use Zend_Db_Adapter_Abstract as DbAdapter;
 use Zend_Db_Select as DbSelect;
 
+/**
+ * @deprecated
+ */
 class QueryHelper
 {
     /** @var DbAdapter */

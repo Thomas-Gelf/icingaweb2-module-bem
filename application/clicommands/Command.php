@@ -25,6 +25,7 @@ class Command extends CliCommand
 
     /**
      * @return IdoDb
+     * @throws \Icinga\Exception\ConfigurationError
      */
     protected function getIdo()
     {

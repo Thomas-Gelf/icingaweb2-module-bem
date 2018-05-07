@@ -9,6 +9,10 @@ use Icinga\Module\Bem\Web\Widget\IssueDetails;
 
 class IssueController extends ControllerBase
 {
+    /**
+     * @throws \Icinga\Exception\IcingaException
+     * @throws \Icinga\Exception\ProgrammingError
+     */
     public function indexAction()
     {
         $this->setAutorefreshInterval(10);
