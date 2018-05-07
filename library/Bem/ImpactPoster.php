@@ -38,7 +38,7 @@ class ImpactPoster
     public function getVersionString()
     {
         $cmd = implode(' ', [
-            $this->getPrefixDir('bin/msend'),
+            $this->getCommandPath(),
             '-l',
             $this->getPrefixDir(),
             '-z'
