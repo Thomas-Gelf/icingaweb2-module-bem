@@ -73,11 +73,12 @@ class BemIssues
                 $knownIssue = $this->getWithChecksum($issue->getKey());
                 if ($this->scheduleIfModified($knownIssue, $issue, $icingaObject)) {
                     $seen[] = $issue->getKey();
-                }
-                if ($relevant) {
+                } elseif ($relevant) {
                     $seen[] = $issue->getKey();
                 } else {
                     Logger::debug('Issue for %s is no longer relevant', $issue->getNiceName());
+                    $icingaObject->state = 0;
+                    $this->scheduleIfModified($knownIssue, $issue, $icingaObject);
                 }
             } elseif ($relevant) {
                 Logger::debug('Got a new issue for %s', $issue->getNiceName());
@@ -101,6 +102,11 @@ class BemIssues
             $issue = $this->issues[$key];
             list($host, $service) = BemIssue::splitCiName($issue->get('ci_name'));
             $icingaObject = $ido->getStateRowFor($host, $service);
+
+            // Force state 0, it might have been acknowledged or similar
+            // TODO: There might be requirements for special treatments of ACK
+            //       or downtimes
+            $icingaObject->state = 0;
             if ($icingaObject === false) {
                 Logger::debug('Related object for removed state not found for %s', $issue->getNiceName());
             } else {
