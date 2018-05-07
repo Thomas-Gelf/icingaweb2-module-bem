@@ -36,12 +36,11 @@ class IdoDb
     }
 
     /**
-     * @return BemIssue[]
-     * @throws IcingaException
+     * @param CellConfig $cell
+     * @return object[]
      */
-    public function fetchIssues(CellConfig $cell)
+    public function fetchProblems(CellConfig $cell)
     {
-        $issues = [];
         $objects = [];
         foreach ($this->fetchProblemHosts() as $object) {
             $objects[$object->id] = $object;
@@ -52,11 +51,7 @@ class IdoDb
 
         $this->enrichRowsWithVars($objects);
 
-        foreach ($objects as $object) {
-            $issues[] = BemIssue::forIcingaObject($object, $cell);
-        }
-
-        return $issues;
+        return $objects;
     }
 
     protected function fetchProblemHosts()

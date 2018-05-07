@@ -66,11 +66,12 @@ class BemIssues
         $seen = [];
         // Make sure we loaded our issues
         $this->issues();
-        foreach ($ido->fetchIssues($this->cell) as $issue) {
+        foreach ($ido->fetchProblems($this->cell) as $icingaObject) {
+            $issue = BemIssue::forIcingaObject($icingaObject, $this->cell);
             $relevant = $issue->isRelevant();
             if ($this->has($issue)) {
                 $knownIssue = $this->getWithChecksum($issue->getKey());
-                if ($this->scheduleIfModified($knownIssue, $issue)) {
+                if ($this->scheduleIfModified($knownIssue, $issue, $icingaObject)) {
                     $seen[] = $issue->getKey();
                 }
                 if ($relevant) {
@@ -99,13 +100,14 @@ class BemIssues
         foreach ($obsolete as $key) {
             $issue = $this->issues[$key];
             list($host, $service) = BemIssue::splitCiName($issue->get('ci_name'));
-            $current = $ido->getStateRowFor($host, $service);
-            if ($current === false) {
+            $icingaObject = $ido->getStateRowFor($host, $service);
+            if ($icingaObject === false) {
                 Logger::debug('Related object for removed state not found for %s', $issue->getNiceName());
             } else {
                 $this->scheduleIfModified(
                     $issue,
-                    BemIssue::forIcingaObject($current, $this->cell)
+                    BemIssue::forIcingaObject($icingaObject, $this->cell),
+                    $icingaObject
                 );
             }
         }
@@ -114,14 +116,18 @@ class BemIssues
     /**
      * @param BemIssue $knownIssue
      * @param BemIssue $currentIssue
+     * @param object $icingaObject
      * @return bool
      * @throws \Icinga\Exception\IcingaException
      */
-    protected function scheduleIfModified(BemIssue $knownIssue, BemIssue $currentIssue)
+    protected function scheduleIfModified(BemIssue $knownIssue, BemIssue $currentIssue, $icingaObject)
     {
         if ($currentIssue->get('severity') !== $knownIssue->get('severity')) {
+            $knownIssue->setIcingaObject($icingaObject);
+            /*
             $knownIssue->set('severity', $currentIssue->get('severity'));
             $knownIssue->set('slot_set_values', $currentIssue->get('slot_set_values'));
+            */
             Logger::debug(
                 'Severity for %s has changed, scheduling notification',
                 $currentIssue->getNiceName()
