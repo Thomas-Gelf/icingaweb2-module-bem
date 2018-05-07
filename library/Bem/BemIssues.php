@@ -69,7 +69,6 @@ class BemIssues
         foreach ($ido->fetchIssues($this->cell) as $issue) {
             $relevant = $issue->isRelevant();
             if ($this->has($issue)) {
-                Logger::debug('We have the issue');
                 $knownIssue = $this->getWithChecksum($issue->getKey());
                 if ($this->scheduleIfModified($knownIssue, $issue)) {
                     $seen[] = $issue->getKey();

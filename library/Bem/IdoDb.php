@@ -99,7 +99,6 @@ class IdoDb
 
     public function getHostStateRow($host)
     {
-        echo $this->selectHosts()->where('ho.name1 = ?', $host) . "\n";
         return $this->db->fetchRow(
             $this->selectHosts()->where('ho.name1 = ?', $host)
         );
@@ -107,9 +106,6 @@ class IdoDb
 
     public function getServiceStateRow($host, $service)
     {
-        echo $this->selectServices()
-            ->where('so.name1 = ?', $host)
-            ->where('so.name2 = ?', $service) . "\n";
         return $this->db->fetchRow(
             $this->selectServices()
                 ->where('so.name1 = ?', $host)
