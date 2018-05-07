@@ -107,6 +107,11 @@ class ImpactPoster
         return $this;
     }
 
+    /**
+     * @param BemNotification $notification
+     * @return array
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function buildParameters(BemNotification $notification)
     {
         // [bmcdocs]/Event+management+common+command+options
@@ -136,6 +141,11 @@ class ImpactPoster
         ];
     }
 
+    /**
+     * @param BemNotification $notification
+     * @return string
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function getSlotSetValueString(BemNotification $notification)
     {
         $params = array();
@@ -143,12 +153,27 @@ class ImpactPoster
             if (preg_match('/^[a-z0-9_]+$/i', $v)) {
                 $value = $v;
             } else {
-                $value = escapeshellarg($v);
+                $value = $this->escapeSlotArgument($v);
             }
             $params[] = "$key=" . $value;
         }
 
         return implode(';', $params);
+    }
+
+    /**
+     * Hint: I couldn't find related documentation
+     *
+     * @param string $value
+     * @return string
+     */
+    protected function escapeSlotArgument($value)
+    {
+        return str_replace(
+            ["\a", "\b", "\f", "\n", "\r", "\t", "\v"],
+            ['\a', '\b', '\f', '\n', '\r', '\t', '\v'],
+            addcslashes($value, '""\\\'')
+        );
     }
 
     public function getObjectClass()
@@ -191,11 +216,21 @@ class ImpactPoster
         return $this->getPrefixDir('etc/mclient.conf');
     }
 
+    /**
+     * @param BemNotification $notification
+     * @return string
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function getCommandString(BemNotification $notification)
     {
         return implode(' ', $this->getCommandAsArray($notification));
     }
 
+    /**
+     * @param BemNotification $notification
+     * @return array
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function getCommandAsArray(BemNotification $notification)
     {
         return array_merge(
@@ -204,6 +239,11 @@ class ImpactPoster
         );
     }
 
+    /**
+     * @param BemNotification $notification
+     * @return array
+     * @throws \Icinga\Exception\IcingaException
+     */
     public function getFlatArguments(BemNotification $notification)
     {
         $flat = array();
