@@ -84,7 +84,7 @@ class BemIssues
                 $this->add($issue);
                 $seen[] = $issue->getKey();
             } else {
-                Logger::debug('Issue for %s is new, but not relevant', $issue->getNiceName());
+                // Logger::debug('Issue for %s is new, but not relevant', $issue->getNiceName());
             }
         }
 
