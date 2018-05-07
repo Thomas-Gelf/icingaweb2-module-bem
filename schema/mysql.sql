@@ -30,7 +30,8 @@ CREATE TABLE bem_issue (
   ts_last_notification BIGINT(20) DEFAULT NULL,
   ts_next_notification BIGINT(20) NOT NULL,
   cnt_notifications BIGINT(20) NOT NULL,
-  PRIMARY KEY (ci_name_checksum)
+  PRIMARY KEY (ci_name_checksum),
+  INDEX idx_ci_name (ci_name (128))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_bin;
 
 CREATE TABLE bem_notification_log (
