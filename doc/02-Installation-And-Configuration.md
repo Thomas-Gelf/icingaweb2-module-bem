@@ -5,7 +5,8 @@ Requirements
 ------------
 
 * [Icinga Web 2](https://github.com/Icinga/icingaweb2) (&gt;= 2.4.1)
-* [ipl](https://github.com/Thomas-Gelf/ipl) (p)rototype for future Icinga PHP Library)
+* [Icinga Web 2 React Bundle](https://github.com/Icinga/icingaweb2-module-reactbundle)
+  (>= 0.2.0)
 * PHP (5.x &gt;= 5.4 or 7.x)
 * MariaDB or MySQL (&gt; 5.5.3)
 * ImpactPoster (msend)
@@ -91,6 +92,7 @@ cell = "integration"
 
 object_class = "ICINGA"
 db_resource = "icinga_bem"
+; max_parallel_runners = 3
 
 [icingaweb]
 url = "https://monitoring.example.com/icingaweb2/"
