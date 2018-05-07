@@ -168,28 +168,27 @@ class IdoDb
         );
     }
 
-    protected function assertValidRow($row, $host, $service = null)
+    protected function enrichRowWithVars($row)
     {
-        if (! is_object($row)) {
-            throw new IcingaException('Not found');
+        if ($row->object_type === 'host') {
+             $this->enrichWithVars($row, $row->id, 'host.vars.');
+        } else {
+            $this->enrichWithVars($row, $row->host_id, 'host.vars.');
+            $this->enrichWithVars($row, $row->id, 'service.vars.');
         }
 
         return $row;
     }
 
-    protected function enrichRowWithVars($row)
+    protected function enrichWithVars($row, $objectId, $prefix)
     {
         $query = $this->db->select()->from(
             ['cv' => 'icinga_customvariablestatus'],
             ['cv.varname', 'cv.varvalue']
-        )->where('object_id = ?', $row->id);
+        )->where('object_id = ?', $objectId);
 
         foreach ($this->db->fetchPairs($query) as $key => $value) {
-            if ($key === 'host_name') {
-                continue;
-            }
-
-            $row->$key = $value;
+            $row->{"$prefix$key"} = $value;
         }
 
         return $row;
