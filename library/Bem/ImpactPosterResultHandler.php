@@ -109,7 +109,12 @@ class ImpactPosterResultHandler
         // TODO: figure out how whether we could benefit from this while streaming
         // to msend's STDIN
         if (preg_match('/Message #(\d+) - Evtid = (\d+)/', $this->outputBuffer, $match)) {
-            return $match[2];
+            if ($match[2] > 0) {
+                return $match[2];
+            } else {
+                // Hint: Evtid = 0 is not ok
+                return null;
+            }
         } else {
             return null;
         }
