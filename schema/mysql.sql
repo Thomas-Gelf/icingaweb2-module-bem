@@ -1,6 +1,7 @@
 CREATE TABLE bem_issue (
-  ci_name_checksum VARBINARY(20) NOT NULL COMMENT 'sha1(cell!host!object)',
+  ci_name_checksum VARBINARY(20) NOT NULL COMMENT 'sha1(cell!ci_name)',
   cell_name VARCHAR(255) NOT NULL,
+  ci_name VARCHAR(255) NOT NULL,
   host_name VARCHAR(255) NOT NULL,
   object_name VARCHAR(255) NOT NULL,
   severity ENUM(
@@ -36,8 +37,7 @@ CREATE TABLE bem_notification_log (
   id BIGINT(20) UNSIGNED AUTO_INCREMENT NOT NULL,
   bem_event_id BIGINT(20) UNSIGNED DEFAULT NULL, -- last_bem_event_id ?
   ci_name_checksum VARBINARY(20) NOT NULL,
-  host_name VARCHAR(255) NOT NULL,
-  object_name VARCHAR(255) NOT NULL,
+  ci_name VARCHAR(255) NOT NULL,
   severity ENUM(
     'UNKNOWN',
     'OK',
@@ -59,7 +59,8 @@ CREATE TABLE bem_notification_log (
   output TEXT NOT NULL,
   PRIMARY KEY (id),
   INDEX idx_search (ci_name_checksum),
-  INDEX idx_name_search (host_name(64), object_name(64))
+  INDEX idx_name_search (ci_name(128)),
+  INDEX idx_sort (ts_notification)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_bin;
 
 CREATE TABLE bem_cell_stats (
