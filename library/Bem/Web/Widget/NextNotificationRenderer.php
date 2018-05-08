@@ -2,12 +2,12 @@
 
 namespace Icinga\Module\Bem\Web\Widget;
 
-use dipl\Html\BaseElement;
+use dipl\Html\BaseHtmlElement;
 use dipl\Translation\TranslationHelper;
 use Icinga\Date\DateFormatter;
 use Icinga\Module\Bem\Util;
 
-class NextNotificationRenderer extends BaseElement
+class NextNotificationRenderer extends BaseHtmlElement
 {
     use TranslationHelper;
 
@@ -20,6 +20,9 @@ class NextNotificationRenderer extends BaseElement
         $this->timestamp = $timestamp;
     }
 
+    /**
+     * @throws \Icinga\Exception\IcingaException
+     */
     protected function assemble()
     {
         if (Util::timestampWithMilliseconds() < $this->timestamp) {
