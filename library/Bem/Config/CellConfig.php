@@ -100,25 +100,12 @@ class CellConfig
 
     /**
      * @param $object
-     * @return mixed
+     * @return string
      * @throws ConfigurationError
      */
     public function calculateSeverityForIcingaObject($object)
     {
-        $map = [
-            'host' => [
-                '0' => 'UP',
-                '1' => 'DOWN',
-                '2' => 'UNREACHABLE',
-            ],
-            'service' => [
-                '0' => 'OK',
-                '1' => 'WARNING',
-                '2' => 'CRITICAL',
-                '3' => 'UNKNOWN',
-            ],
-        ];
-        $state = $map[$object->object_type][$object->state];
+        $state = $object->state;
 
         foreach ($this->config as $title => $section) {
             if (preg_match('/^modifier\./', $title)) {

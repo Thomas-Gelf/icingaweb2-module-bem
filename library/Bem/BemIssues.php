@@ -77,7 +77,11 @@ class BemIssues
                     $seen[] = $issue->getKey();
                 } else {
                     Logger::debug('Issue for %s is no longer relevant', $issue->getNiceName());
-                    $icingaObject->state = 0;
+                    if ($icingaObject->object_type === 'host') {
+                        $icingaObject->state = 'UP';
+                    } else {
+                        $icingaObject->state = 'OK';
+                    }
                     $this->scheduleIfModified($knownIssue, $issue, $icingaObject);
                 }
             } elseif ($relevant) {

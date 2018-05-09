@@ -3,7 +3,6 @@
 namespace Icinga\Module\Bem;
 
 use Icinga\Data\ResourceFactory;
-use Icinga\Exception\IcingaException;
 use Icinga\Module\Bem\Config\CellConfig;
 use Icinga\Module\Monitoring\Backend\MonitoringBackend;
 use Zend_Db_Adapter_Abstract as DbAdapter;
@@ -119,7 +118,11 @@ class IdoDb
                 'host_name'       => 'ho.name1',
                 'service_name'    => '(NULL)',
                 'state_type'      => "(CASE WHEN hs.state_type = 1 THEN 'HARD' ELSE 'SOFT' END)",
-                'state'           => 'hs.current_state',
+                'state'           => '(CASE hs.current_state'
+                    . " WHEN 0 THEN 'UP'"
+                    . " WHEN 2 THEN 'UNREACHABLE'"
+                    . " ELSE 'DOWN'"
+                    . " END)",
                 'hard_state'      => 'CASE WHEN hs.has_been_checked = 0 OR hs.has_been_checked IS NULL THEN 99'
                     . ' ELSE CASE WHEN hs.state_type = 1 THEN hs.current_state'
                     . ' ELSE hs.last_hard_state END END',
@@ -145,7 +148,12 @@ class IdoDb
                 'host_name'       => 'so.name1',
                 'service_name'    => 'so.name2',
                 'state_type'      => "(CASE WHEN ss.state_type = 1 THEN 'HARD' ELSE 'SOFT' END)",
-                'state'           => 'ss.current_state',
+                'state'           => '(CASE ss.current_state'
+                    . " WHEN 0 THEN 'OK'"
+                    . " WHEN 1 THEN 'WARNING'"
+                    . " WHEN 2 THEN 'CRITICAL'"
+                    . " ELSE 'UNKNOWN'"
+                    . " END)",
                 'hard_state'      => 'CASE WHEN ss.has_been_checked = 0 OR ss.has_been_checked IS NULL THEN 99'
                     . ' ELSE CASE WHEN ss.state_type = 1 THEN ss.current_state'
                     . ' ELSE ss.last_hard_state END END',
