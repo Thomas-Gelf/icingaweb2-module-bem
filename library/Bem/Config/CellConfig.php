@@ -6,7 +6,9 @@ use Icinga\Application\Config;
 use Icinga\Data\Filter\Filter;
 use Icinga\Data\ResourceFactory;
 use Icinga\Exception\ConfigurationError;
+use Icinga\Module\Bem\Hook\PlaceholderHook;
 use Icinga\Module\Bem\ImpactPoster;
+use Icinga\Web\Hook;
 
 class CellConfig
 {
@@ -40,6 +42,9 @@ class CellConfig
     private $configCheckSum;
 
     private $maps;
+
+    /** @var PlaceholderHook[] */
+    private $placeHolderHooks;
 
     /**
      * BmcCell constructor.
@@ -277,8 +282,51 @@ class CellConfig
         return null;
     }
 
+    /**
+     * @return PlaceholderHook[]
+     */
+    protected function getPlaceHolderHooks()
+    {
+        if ($this->placeHolderHooks === null) {
+            /** @var PlaceholderHook[] $hooks */
+            $hooks = Hook::all('Bem\\Placeholder');
+
+            $enum = [];
+            foreach ($hooks as $hook) {
+                $enum[$hook->getPlaceholderName()] = $hook;
+            }
+
+            $this->placeHolderHooks = $enum;
+        }
+
+        return $this->placeHolderHooks;
+    }
+
+    protected function hasPlaceHolderHook($name)
+    {
+        $hooks = $this->getPlaceHolderHooks();
+
+        return array_key_exists($name, $hooks);
+    }
+
+    protected function evaluatePlaceHolderHook($name, $icingaObject)
+    {
+        $hooks = $this->getPlaceHolderHooks();
+
+        if (array_key_exists($name, $hooks)) {
+            return $hooks[$name]->evaluate($icingaObject);
+        } else {
+            return null;
+        }
+    }
+
+
     protected function evaluatePlaceholder($value, $object)
     {
+        if ($this->hasPlaceHolderHook($value)) {
+            return $this->evaluatePlaceHolderHook($value, $object);
+        }
+
         if ($value === 'object:getLink') {
             $urlHelper = new IcingaWebUrlHelper($this);
 
