@@ -110,7 +110,11 @@ class BemIssues
             // Force state 0, it might have been acknowledged or similar
             // TODO: There might be requirements for special treatments of ACK
             //       or downtimes
-            $icingaObject->state = 0;
+            if ($icingaObject->object_type === 'host') {
+                $icingaObject->state = 'UP';
+            } else {
+                $icingaObject->state = 'OK';
+            }
             if ($icingaObject === false) {
                 Logger::debug('Related object for removed state not found for %s', $issue->getNiceName());
             } else {
