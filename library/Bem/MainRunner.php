@@ -89,7 +89,7 @@ class MainRunner
     {
         $loop = $this->loop = Loop::create();
 
-        $loop->nextTick(function () {
+        $loop->futureTick(function () {
             $this->runFailSafe(function () {
                 $this->issues->refreshIssues();
                 $this->refreshIdoIssues();
