@@ -86,12 +86,12 @@ class ImpactPoster
         $timer = $myLoop->addTimer(10, function () use ($mSend) {
             $mSend->terminate();
         });
-        $mSend->on('exit', function ($exitCode, $termSignal) use ($resultHandler, $timer, $mSend) {
-            $timer->cancel();
+        $mSend->on('exit', function ($exitCode, $termSignal) use ($resultHandler, $timer, $loop, $mSend) {
+            $loop->cancel($timer);
             $resultHandler->stop($exitCode, $termSignal, $mSend);
         });
-        $mSend->on('error', function (Exception $e) use ($resultHandler, $timer, $mSend) {
-            $timer->cancel();
+        $mSend->on('error', function (Exception $e) use ($resultHandler, $timer, $loop, $mSend) {
+            $loop->cancel($timer);
             $resultHandler->addOutput(
                 $e->getMessage()
                 . "\n"
