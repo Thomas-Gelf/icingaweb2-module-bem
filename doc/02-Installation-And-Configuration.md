@@ -6,7 +6,7 @@ Requirements
 
 * [Icinga Web 2](https://github.com/Icinga/icingaweb2) (&gt;= 2.4.1)
 * [Icinga Web 2 React Bundle](https://github.com/Icinga/icingaweb2-module-reactbundle)
-  (>= 0.2.0)
+  (>= 0.3.0)
 * PHP (5.x &gt;= 5.4 or 7.x)
 * MariaDB or MySQL (&gt; 5.5.3)
 * ImpactPoster (msend)

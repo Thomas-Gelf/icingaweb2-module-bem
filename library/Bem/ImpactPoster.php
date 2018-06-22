@@ -87,11 +87,11 @@ class ImpactPoster
             $mSend->terminate();
         });
         $mSend->on('exit', function ($exitCode, $termSignal) use ($resultHandler, $timer, $loop, $mSend) {
-            $loop->cancel($timer);
+            $loop->cancelTimer($timer);
             $resultHandler->stop($exitCode, $termSignal, $mSend);
         });
         $mSend->on('error', function (Exception $e) use ($resultHandler, $timer, $loop, $mSend) {
-            $loop->cancel($timer);
+            $loop->cancelTimer($timer);
             $resultHandler->addOutput(
                 $e->getMessage()
                 . "\n"
