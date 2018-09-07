@@ -91,6 +91,33 @@ class IdoDb
         return $this->enrichRowWithVars($row);
     }
 
+    public function getEmptyStateRowFor($host, $service = null)
+    {
+        if ($service === null) {
+            $objectType = 'host';
+            $state = 'UP';
+            $output = "$host no longer exists";
+        } else {
+            $objectType = 'service';
+            $state = 'OK';
+            $output = "$service no longer exists on $host";
+        }
+
+        return (object) [
+            'id'              => null,
+            'object_type'     => $objectType,
+            'host_id'         => null,
+            'host_name'       => $host,
+            'service_name'    => $service,
+            'state_type'      => 'SOFT',
+            'state'           => $state,
+            'hard_state'      => $state,
+            'is_acknowledged' => 0,
+            'is_in_downtime'  => 0,
+            'output'          => $output
+        ];
+    }
+
     public function getHostStateRow($host)
     {
         return $this->db->fetchRow(
