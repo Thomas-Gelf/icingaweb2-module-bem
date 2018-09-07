@@ -70,6 +70,10 @@ CREATE TABLE bem_cell_stats (
   max_parallel_processes INT(10) UNSIGNED NOT NULL,
   running_processes INT(10) UNSIGNED NOT NULL,
   queue_size INT(10) UNSIGNED NOT NULL,
+  fqdn VARCHAR(255) NOT NULL,
+  username VARCHAR(64) NOT NULL,
+  pid INT UNSIGNED NOT NULL,
+  php_version VARCHAR(64) NOT NULL,
   ts_last_modification BIGINT(20) NOT NULL,
   ts_last_update BIGINT(20) NOT NULL,
   PRIMARY KEY (cell_name)
