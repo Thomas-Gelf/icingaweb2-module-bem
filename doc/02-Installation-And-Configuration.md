@@ -94,6 +94,11 @@ object_class = "ICINGA"
 db_resource = "icinga_bem"
 ; max_parallel_runners = 3
 
+; For a stand-by cluster node:
+; other_db_resource = "icinga_bem_standby"
+; role = "standby"
+; defer_promotion = 30
+
 [icingaweb]
 url = "https://monitoring.example.com/icingaweb2/"
 
@@ -147,13 +152,18 @@ Let's explain the various settings. Configuration consists of two sections,
 `[main]` and `[msend_params]`. First, the generic settings in the `[main]`
 section:
 
-| Setting      | Description                                                      | Default          | Required |
-|--------------|------------------------------------------------------------------|------------------|----------|
-| cell         | Event Manager cell, basically the instance receiving your events | -                | YES      |
-| object_class | Used as `-a` when calling `msend`                                | ICINGA           | YES      |
-| db_resource  | Resource name referencing the DB connection in `resources.ini`   | -                | YES      |
-| web_url      | The base URL of your Icinga Web 2 instance                       | -                | NO       |
-| mcell_home   | This is your `MCELL_HOME`, where msend has been installed        | /usr/local/msend | YES      |
+| Setting           | Description                                                      | Default          | Required |
+|-------------------|------------------------------------------------------------------|------------------|----------|
+| cell              | Event Manager cell, basically the instance receiving your events | -                | YES      |
+| object_class      | Used as `-a` when calling `msend`                                | ICINGA           | YES      |
+| db_resource       | Resource name referencing the DB connection in `resources.ini`   | -                | YES      |
+| web_url           | The base URL of your Icinga Web 2 instance                       | -                | NO       |
+| mcell_home        | This is your `MCELL_HOME`, where msend has been installed        | /usr/local/msend | YES      |
+| other_db_resource | Resource name referencing the master node DB                | -                | NO       |
+| role              | Whether this is a `master` or `standby` node                | master           | NO       |
+| defer_promotion   | How long stand-by node should wait unless takeover          | 30               | NO       |
+
+
 
 Next section is [msend_params]. Basically, every setting here is passed as a
 slot value to the **ImpactPoster** command (`msend`) in an escaped way via `-b`.
