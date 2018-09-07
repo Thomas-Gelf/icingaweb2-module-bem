@@ -131,14 +131,14 @@ class MainRunner
                 $this->stats->updateStats();
             });
         });
-        $loop->addPeriodicTimer(3, function () {
-            $this->runFailSafe(function () {
-                $this->checkHealth();
-            });
-        });
         $loop->addPeriodicTimer(60, function () {
             $this->runFailSafe(function () {
                 $this->stats->updateStats(true);
+            });
+        });
+        $loop->addPeriodicTimer(3, function () {
+            $this->runFailSafe(function () {
+                $this->checkHealth();
             });
         });
         $loop->addPeriodicTimer(15, function () {
