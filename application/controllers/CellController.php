@@ -3,14 +3,17 @@
 namespace Icinga\Module\Bem\Controllers;
 
 use dipl\Html\Html;
+use dipl\Html\HtmlDocument;
 use dipl\Web\Widget\NameValueTable;
-use Icinga\Module\Bem\CellStats;
+use Icinga\Date\DateFormatter;
+use Icinga\Module\Bem\CellHealth;
 use Icinga\Module\Bem\Config\CellConfig;
 
 class CellController extends ControllerBase
 {
     public function indexAction()
     {
+        $this->setAutorefreshInterval(3);
         $cellName = $this->params->getRequired('name');
         $this->addSingleTab($this->translate('BEM Cell'));
         $this->addTitle($this->translate('BEM Cell "%s"'), $cellName);
@@ -22,9 +25,8 @@ class CellController extends ControllerBase
             $slotTable->addNameValueRow($key, Html::tag('pre', null, $value));
         }
 
+        $this->renderHealth($cell, $this->content());
         $this->content()->add([
-            Html::tag('h2', null, $this->translate('Runner Health')),
-            $this->renderHealth($cell),
             Html::tag('h2', null, $this->translate('Slot Values')),
             $slotTable,
             Html::tag('h2', null, $this->translate('Used Params')),
@@ -36,15 +38,87 @@ class CellController extends ControllerBase
         ]);
     }
 
-    protected function renderHealth(CellConfig $cell)
+    protected function renderHealth(CellConfig $cell, HtmlDocument $container)
     {
-        if (! CellStats::exist($cell)) {
-            return Html::tag(
-                'p',
-                ['class' => 'error'],
-                "This cell has not yet stored any stats, please check whether it's daemon is running"
-            );
+        $health = new CellHealth($cell);
+
+        $info = $health->getInfo();
+        if ($pid = $info->getPid()) {
+            $container->add($this->createHint(Html::sprintf(
+                $this->translate(
+                    'BEM daemon for "%s" is running as PID %s by user %s on %s, last refresh happened %s'
+                ),
+                $cell->getName(),
+                Html::tag('strong', (string) $pid),
+                Html::tag('strong', $info->getUsername()),
+                Html::tag('strong', $info->getFqdn()),
+                $this->timeAgo($info->getLastUpdate() / 1000)
+            ), 'information'));
+        } else {
+            if ($info->getFqdn()) {
+                $container->add($this->createHint(Html::sprintf(
+                    $this->translate(
+                        'BEM daemon for "%s" is NOT running. It was last seen on %s %s'
+                    ),
+                    $cell->getName(),
+                    Html::tag('strong', $info->getFqdn()),
+                    $this->timeAgo($info->getLastUpdate() / 1000)
+                )));
+
+                return;
+            } else {
+                $container->add($this->createHint(
+                    "The daemon for this cell has never been running"
+                ));
+
+                return;
+            }
         }
+        $table = new NameValueTable();
+        $container->add($table);
+        $table->addNameValuePairs([
+            $this->translate('Processes') => sprintf(
+                $this->translate('%d of %d allowed ImpactPoster (msend) processes'),
+                $info->getRunningProcessCount(),
+                $info->getMaxProcessCount()
+            ),
+            $this->translate('Queue Size') => sprintf(
+                $this->translate('%d messages are waiting be sent'),
+                $info->getQueueSize()
+            ),
+            $this->translate('Fail-Over') => $cell->hasFailOver()
+                ? $this->translate('Yes')
+                : $this->translate('No'),
+        ]);
+
+        if ($cell->hasFailOver()) {
+            $table->addNameValuePairs([
+                $this->translate('Configured Role') => $cell->getRole(),
+                $this->translate('Effective Role') => $info->isMaster()
+                    ? $this->translate('master')
+                    : $this->translate('standby')
+            ]);
+        }
+        $table->addNameValuePairs([
+            $this->translate('Last Modification') => DateFormatter::formatDateTime($info->getLastModification() / 1000),
+            $this->translate('Last Update') => DateFormatter::formatDateTime($info->getLastUpdate() / 1000),
+            $this->translate('PHP Version') => $info->getPhpVersion(),
+        ]);
+    }
+
+    protected function createHint($message, $class = 'error')
+    {
+        return Html::tag('p', [
+            'class' => $class
+        ], $message);
+    }
+
+    protected function timeAgo($time)
+    {
+        return Html::tag('span', [
+            'class' => 'time-ago',
+            'title' => DateFormatter::formatDateTime($time)
+        ], DateFormatter::timeAgo($time));
     }
 
     protected function renderList($list)

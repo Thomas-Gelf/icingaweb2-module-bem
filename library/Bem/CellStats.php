@@ -3,7 +3,6 @@
 namespace Icinga\Module\Bem;
 
 use Icinga\Application\Logger;
-use Icinga\Application\Platform;
 use Icinga\Module\Bem\Config\CellConfig;
 
 class CellStats
@@ -125,19 +124,6 @@ class CellStats
             $this->setLoadedStats($stats);
             $this->updateStats();
         }
-
-        $this->updateProcInfo();
-    }
-
-    protected function updateProcInfo()
-    {
-        $db = $this->cell->db();
-        $db->update('bem_cell_stats', [
-            'pid'             => posix_getpid(),
-            'fqdn'            => Platform::getFqdn(),
-            'username'        => Platform::getPhpUser(),
-            'php_version'     => Platform::getPhpVersion(),
-        ], $db->quoteInto('cell_name = ?', $this->cell->getName()));
     }
 
     public static function fetch(CellConfig $cell)

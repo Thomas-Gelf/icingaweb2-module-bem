@@ -6,6 +6,7 @@ use Exception;
 use Icinga\Application\Logger;
 use Icinga\Module\Bem\Config\CellConfig;
 use React\EventLoop\Factory as Loop;
+use React\EventLoop\TimerInterface;
 use SplObjectStorage;
 
 /**
@@ -23,7 +24,7 @@ class MainRunner
     /** @var CellConfig */
     protected $cell;
 
-    /** @var Loop */
+    /** @var \React\EventLoop\LoopInterface */
     private $loop;
 
     /** @var string */
@@ -41,10 +42,18 @@ class MainRunner
     /** @var CellStats */
     protected $stats;
 
+    /** @var CellHealth */
+    protected $health;
+
     /** @var IdoDb */
     protected $ido;
 
     private $isReady = false;
+
+    private $isMaster;
+
+    /** @var TimerInterface|null */
+    private $promoteToMaster;
 
     /**
      * MainRunner constructor.
@@ -87,8 +96,14 @@ class MainRunner
      */
     public function run()
     {
-        $loop = $this->loop = Loop::create();
+        $loop = $this->loop();
 
+        $loop->addSignal(SIGINT, $func = function ($signal) use (&$func) {
+            $this->shutdownWithSignal($signal, $func);
+        });
+        $loop->addSignal(SIGTERM, $func = function ($signal) use (&$func) {
+            $this->shutdownWithSignal($signal, $func);
+        });
         $loop->futureTick(function () {
             $this->runFailSafe(function () {
                 $this->issues->refreshIssues();
@@ -116,6 +131,11 @@ class MainRunner
                 $this->stats->updateStats();
             });
         });
+        $loop->addPeriodicTimer(3, function () {
+            $this->runFailSafe(function () {
+                $this->checkHealth();
+            });
+        });
         $loop->addPeriodicTimer(60, function () {
             $this->runFailSafe(function () {
                 $this->stats->updateStats(true);
@@ -136,6 +156,78 @@ class MainRunner
         $loop->run();
     }
 
+    protected function checkHealth()
+    {
+        $health = $this->health;
+        $health->refresh();
+        $cellName = $this->cellName;
+
+        if ($this->isMaster === null
+            && ($this->cell->shouldBeMaster() || ! $this->cell->hasFailOver())) {
+            Logger::info("I will run as master for $cellName, no fail-over configured");
+            $this->promote();
+
+            return;
+        }
+
+        if ($this->isMaster && $health->shouldBeMaster()) {
+            return;
+        }
+
+        if ($this->isMaster && ! $health->shouldBeMaster()) {
+            Logger::info("I'm master for $cellName, the other instance is running fine");
+            $this->demote();
+            return;
+        }
+
+        if (! $this->isMaster && $health->shouldBeMaster()) {
+            $this->schedulePromotion();
+            return;
+        }
+    }
+
+    protected function schedulePromotion()
+    {
+        if ($this->promoteToMaster === null) {
+            $timeout = $this->cell->get('main', 'defer_promotion', 30);
+            $cellName = $this->cellName;
+            Logger::warning("I'm standby, will promote to master for $cellName in $timeout seconds");
+            $this->promoteToMaster = $this->loop()->addTimer($timeout, function () {
+                $this->runFailSafe(function () {
+                    $this->promote();
+                });
+            });
+
+        }
+    }
+
+    protected function promote()
+    {
+        Logger::info('I will now become master for ' . $this->cellName);
+        $this->cancelPendingPromotion();
+        $this->health->promote();
+        Logger::info('I\'m now master for ' . $this->cellName);
+        $this->isMaster = true;
+    }
+
+    protected function cancelPendingPromotion()
+    {
+        if ($this->promoteToMaster !== null) {
+            $this->loop()->cancelTimer($this->promoteToMaster);
+            $this->promoteToMaster = null;
+        }
+    }
+
+    protected function demote()
+    {
+        Logger::info('I will now become standby for ' . $this->cellName);
+        $this->cancelPendingPromotion();
+        $this->health->demote();
+        Logger::info('I\'m now standby for ' . $this->cellName);
+        $this->isMaster = false;
+        $this->queue = [];
+    }
+
     /**
      * Reset all connections, config, issues
      */
@@ -152,6 +244,9 @@ class MainRunner
             $this->maxParallel = $this->cell->getMaxParallelRunners();
             $this->issues = new BemIssues($this->cell);
             $this->stats = new CellStats($this->cell);
+            $this->health = new CellHealth($this->cell);
+            $this->health->refreshProcessInfo();
+            $this->checkHealth();
             $this->isReady = true;
         } catch (Exception $e) {
             Logger::error(
@@ -169,6 +264,9 @@ class MainRunner
      */
     protected function fillQueue()
     {
+        if (! $this->isMaster) {
+            return;
+        }
         if (! empty($this->queue)) {
             Logger::debug('Queue not empty, not fetching new tasks');
             return;
@@ -274,6 +372,39 @@ class MainRunner
         return $this->running->count();
     }
 
+    protected function shutdownWithSignal($signal, &$func)
+    {
+        $this->loop()->removeSignal($signal, $func);
+        $this->shutdown();
+    }
+
+    protected function shutdown()
+    {
+        $this->isReady = false;
+        try {
+            Logger::info(
+                'Shutting down BEM main runner for %s',
+                $this->cellName
+            );
+            if ($this->health !== null) {
+                $this->health->clearPid();
+            }
+            $this->cell->disconnect();
+            if ($this->ido !== null) {
+                $this->ido->getDb()->closeConnection();
+            }
+        } catch (Exception $e) {
+            Logger::error(
+                'Failed to safely shutdown vSphereDB main runner for %s: %s -> %s, stopping anyways',
+                $this->cellName,
+                $e->getMessage(),
+                $e->getTraceAsString()
+            );
+        }
+
+        $this->loop()->stop();
+    }
+
     /**
      * Triggers our sending operation
      *
@@ -291,7 +422,7 @@ class MainRunner
             count($this->queue)
         );
 
-        $poster->send($issue, $this->loop, $this);
+        $poster->send($issue, $this->loop(), $this);
     }
 
     /**

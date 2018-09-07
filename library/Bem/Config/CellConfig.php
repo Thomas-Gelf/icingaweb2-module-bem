@@ -36,6 +36,9 @@ class CellConfig
     /** @var \Zend_Db_Adapter_Abstract */
     private $db;
 
+    /** @var \Zend_Db_Adapter_Abstract */
+    private $otherDb;
+
     /** @var ImpactPoster */
     private $impactPoster;
 
@@ -57,6 +60,21 @@ class CellConfig
         $this->config = $config;
         // TODO: Fail with missing config.
         $this->triggerFreshConfig();
+    }
+
+    public function hasFailOver()
+    {
+        return $this->config->get('main', 'other_db_resource') !== null;
+    }
+
+    public function getRole()
+    {
+        return $this->config->get('main', 'role', 'master');
+    }
+
+    public function shouldBeMaster()
+    {
+        return $this->config->get('main', 'role', 'master') === 'master';
     }
 
     /**
@@ -171,6 +189,7 @@ class CellConfig
         $this->loadMaps();
 
         $this->db = null;
+        $this->otherDb = null;
         $this->impactPoster = null;
         $this->params = null;
         $this->optionalVars = null;
@@ -180,6 +199,10 @@ class CellConfig
         $this->db = ResourceFactory::create(
             $this->config->get('main', 'db_resource')
         )->getDbAdapter();
+
+        if ($other = $this->config->get('main', 'other_db_resource')) {
+            $this->otherDb = ResourceFactory::create($other)->getDbAdapter();
+        }
     }
 
     public static function loadByName($name)
@@ -436,11 +459,19 @@ class CellConfig
         if ($this->db !== null) {
             $this->db->closeConnection();
         }
+        if ($this->otherDb !== null) {
+            $this->otherDb->closeConnection();
+        }
     }
 
     public function db()
     {
         return $this->db;
+    }
+
+    public function otherDb()
+    {
+        return $this->otherDb;
     }
 
     public function getImpactPoster()
