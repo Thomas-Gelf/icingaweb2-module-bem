@@ -66,15 +66,16 @@ CREATE TABLE bem_notification_log (
 
 CREATE TABLE bem_cell_stats (
   cell_name VARCHAR(64) NOT NULL,
+  is_master ENUM('y', 'n') DEFAULT 'y' NOT NULL,
   event_counter BIGINT(20) UNSIGNED NOT NULL,
   max_parallel_processes INT(10) UNSIGNED NOT NULL,
   running_processes INT(10) UNSIGNED NOT NULL,
   queue_size INT(10) UNSIGNED NOT NULL,
-  fqdn VARCHAR(255) NOT NULL,
-  username VARCHAR(64) NOT NULL,
-  pid INT UNSIGNED NOT NULL,
-  php_version VARCHAR(64) NOT NULL,
-  ts_last_modification BIGINT(20) NOT NULL,
-  ts_last_update BIGINT(20) NOT NULL,
+  fqdn VARCHAR(255) DEFAULT NULL,
+  username VARCHAR(64) DEFAULT NULL,
+  pid INT UNSIGNED DEFAULT NULL,
+  php_version VARCHAR(64) DEFAULT NULL,
+  ts_last_modification BIGINT(20) DEFAULT NULL,
+  ts_last_update BIGINT(20) DEFAULT NULL,
   PRIMARY KEY (cell_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_bin;
