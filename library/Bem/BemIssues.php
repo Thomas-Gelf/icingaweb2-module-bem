@@ -106,6 +106,14 @@ class BemIssues
             $issue = $this->issues[$key];
             list($host, $service) = BemIssue::splitCiName($issue->get('ci_name'));
             $icingaObject = $ido->getStateRowFor($host, $service);
+            if ($icingaObject === false) {
+                // Hint: this has not been enriched with vars, as we no longer
+                // have them. Worst thing that could happen is a misclassified
+                // event, no recovery - and timeout as configured. Read: a removed
+                // objects which had a problem might be visible for another 2 hours
+                // in BMC
+                $icingaObject = $ido->getEmptyStateRowFor($host, $service);
+            }
 
             // Force state 0, it might have been acknowledged or similar
             // TODO: There might be requirements for special treatments of ACK
