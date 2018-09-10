@@ -12,6 +12,6 @@ Main advantage of the daemon variant is, that it allows to send all pending
 issues at once with a given timeout. It will then eriodically re-send all
 issues to refresh them for the Event Manager.
 
-Read more about how this works in [Theory of Operation](doc/01-Theory of Operation.md).
+Read more about how this works in [Theory of Operation](doc/01-Theory-of-Operation.md).
 In case you like what you see, please head on to [Installation and Configuration](
 doc/02-Installation-And-Configuration.md).
