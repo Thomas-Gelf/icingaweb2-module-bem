@@ -147,8 +147,8 @@ class BemNotification
     public function calculateNextNotification()
     {
         if ($this->get('bem_event_id') === null) {
-            // We haven't been able to get an EventId, retry in 15 seconds
-            return Util::timestampWithMilliseconds() + 15 * 1000;
+            // We haven't been able to get an EventId, retry in 5 minutes
+            return Util::timestampWithMilliseconds() + 300 * 1000;
         }
 
         $mcTimeout = $this->getSlotSetValue('mc_timeout');
