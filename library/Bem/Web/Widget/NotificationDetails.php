@@ -27,7 +27,7 @@ class NotificationDetails extends NameValueTable
     public function __construct(BemNotification $notification)
     {
         $this->notification = $notification;
-        list($this->host, $this->servie) = BemIssue::splitCiName($notification->get('ci_name'));
+        list($this->host, $this->service) = BemIssue::splitCiName($notification->get('ci_name'));
     }
 
     /**
