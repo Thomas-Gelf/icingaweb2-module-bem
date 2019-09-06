@@ -210,3 +210,26 @@ issues to BEM.
 That's it, your daemon should now be running. Feel free to configure as many
 cells as you want, each of them with a distinct database and systemd service
 instance.
+
+Available Properties
+--------------------
+
+### Sample
+
+```
+id                      => 17052
+object_type             => service
+host_id                 => 17037
+host_name               => app2.cmdb.example.com
+service_name            => h1
+state_type              => HARD
+state                   => 2
+hard_state              => 2
+is_acknowledged         => 0
+is_in_downtime          => 0
+output                  => Icinga Director: there are problems
+host.vars.cn            => ["app2.cmdb.example.com"]
+host.vars.system_owners => ["BOFH"]
+severity                => CRITICAL
+worst_severity          => CRITICAL
+```
