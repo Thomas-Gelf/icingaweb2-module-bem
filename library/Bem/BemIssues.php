@@ -135,6 +135,64 @@ class BemIssues
         }
     }
 
+    protected function fetchRawIssues(DbAdapter $db)
+    {
+        $result = [];
+        foreach ($db->fetchAll($db->select()->from('bem_issue')) as $row) {
+            $result[$row->ci_name_checksum] = $row;
+        }
+
+        return $result;
+    }
+
+    public function syncFrom(DbAdapter $db)
+    {
+        $myIssues = $this->fetchRawIssues($this->db);
+        $otherIssues = $this->fetchRawIssues($db);
+
+        $new = [];
+        $mod = [];
+        $del = [];
+
+        foreach (array_keys($myIssues) as $key) {
+            if (! isset($otherIssues[$key])) {
+                $del[] = $key;
+            }
+        }
+
+        foreach (array_keys($otherIssues) as $key) {
+            if (isset($myIssues[$key])) {
+                if ($ret = $this->calculateInstanceIssueDiff($myIssues[$key], $otherIssues[$key])) {
+                    $mod[$key] = $ret;
+                }
+
+            } else {
+                $new[] = $key;
+            }
+        }
+
+        if (! empty($new)) {
+            foreach ($new as $row) {
+                $this->db->insert((array) $row);
+            }
+        }
+        if (! empty($new)) {
+            foreach ($new as $row) {
+                $this->db->insert((array) $row);
+            }
+        }
+    }
+
+    protected function calculateInstanceIssueDiff($old, $new)
+    {
+        // -> ts, wenn diff -> mitnehmen
+        if ($old->ts_next_notification >= $new->ts_next_notification) {
+            return false;
+        }
+
+        return $new;
+    }
+
     /**
      * @param BemIssue $knownIssue
      * @param BemIssue $currentIssue

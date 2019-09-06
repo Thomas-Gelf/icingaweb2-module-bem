@@ -287,8 +287,24 @@ class MainRunner
      */
     protected function refreshIdoIssues()
     {
-        Logger::debug('Refreshing IDO issues');
-        $this->issues->refreshFromIdo($this->ido);
+        if ($this->isMaster) {
+            Logger::debug('Refreshing IDO issues');
+            $this->issues->refreshFromIdo($this->ido);
+        }
+    }
+
+    /**
+     * Refresh current issues by comparing them to those in the IDO
+     *
+     * @throws \Icinga\Exception\IcingaException
+     * @throws \Zend_Db_Adapter_Exception
+     */
+    protected function syncIssuesFromMaster()
+    {
+        if (! $this->isMaster) {
+            Logger::debug('Trying to fetch issues from master DB');
+            $this->issues->syncFrom($this->cell->otherDb());
+        }
     }
 
     /**
