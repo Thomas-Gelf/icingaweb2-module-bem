@@ -172,7 +172,7 @@ class ImpactPoster
         return str_replace(
             ["\a", "\b", "\f", "\n", "\r", "\t", "\v"],
             ['\a', '\b', '\f', '\n', '\r', '\t', '\v'],
-            addcslashes($value, '\\\'')
+            addcslashes($value, '\\\';')
         );
     }
 
