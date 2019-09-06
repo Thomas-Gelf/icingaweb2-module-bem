@@ -3,6 +3,7 @@
 namespace Icinga\Module\Bem\Web\Widget;
 
 use dipl\Html\Html;
+use dipl\Html\Link;
 use dipl\Translation\TranslationHelper;
 use dipl\Web\Widget\NameValueTable;
 use Icinga\Module\Bem\BemIssue;
@@ -36,11 +37,27 @@ class NotificationDetails extends NameValueTable
     protected function assemble()
     {
         $n = $this->notification;
-        $this->addNameValueRow($this->translate('Host'), $this->host);
+        $this->addNameValueRow($this->translate('Host'),
+            Link::create($this->translate($this->host),
+            'monitoring/host/show',
+            ['host' => $this->host],
+            [
+                'data-base-target' => '_next'
+            ]
+        ));
 
         if ($this->service !== null) {
-            $this->addNameValueRow($this->translate('Service'), $this->service);
+            $this->addNameValueRow($this->translate('Service'),
+            Link::create($this->translate($this->service),
+            'monitoring/service/show',
+            ['host' => $this->host,
+             'service' => $this->service],
+            [
+                'data-base-target' => '_next'
+            ]
+        ));
         }
+
         $this->addNameValuePairs($n->getSlotSetValues());
         $exitCodeInfo = new ImpactPosterExitCodes();
         if ($n->get('command_line') !== null) {
