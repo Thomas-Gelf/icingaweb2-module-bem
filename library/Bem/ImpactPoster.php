@@ -170,9 +170,10 @@ class ImpactPoster
     protected function escapeSlotArgument($value)
     {
         return str_replace(
-            ["\a", "\b", "\f", "\n", "\r", "\t", "\v"],
-            ['\a', '\b', '\f', '\n', '\r', '\t', '\v'],
-            addcslashes($value, '\\\';')
+            // Escaping the semicolon doesn't work, so we replace it with a colon:
+            ["\a", "\b", "\f", "\n", "\r", "\t", "\v", ';'],
+            ['\a', '\b', '\f', '\n', '\r', '\t', '\v', ':'],
+            addcslashes($value, '\\\'')
         );
     }
 
