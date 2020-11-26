@@ -1,0 +1,10 @@
+Name: BEM
+Version: 0.9.0
+Depends: reactbundle (>=0.6.0), director (>=1.6.0)
+Description: BMC (ProactiveNet) Event Manager© integration
+  This Icinga Web 2 module has been written to allow for an easy integration of
+  your Icinga environment with **BMC (ProactiveNet) Event Manager©** installations.
+
+  This component is responsible for sending events to the BMC Event Console through
+  the **ImpactPoster** (`msend`). This module provides a standalone notification
+  command or can alternatively run as a daemon in the background.
