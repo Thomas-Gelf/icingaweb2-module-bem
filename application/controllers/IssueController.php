@@ -2,10 +2,10 @@
 
 namespace Icinga\Module\Bem\Controllers;
 
-use dipl\Html\Html;
 use Icinga\Module\Bem\BemIssue;
 use Icinga\Module\Bem\Web\Table\NotificationLogTable;
 use Icinga\Module\Bem\Web\Widget\IssueDetails;
+use ipl\Html\Html;
 
 class IssueController extends ControllerBase
 {

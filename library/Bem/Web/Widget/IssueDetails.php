@@ -2,11 +2,11 @@
 
 namespace Icinga\Module\Bem\Web\Widget;
 
-use dipl\Html\Html;
-use dipl\Translation\TranslationHelper;
-use dipl\Web\Widget\NameValueTable;
+use gipfl\Translation\TranslationHelper;
+use gipfl\Web\Table\NameValueTable;
 use Icinga\Date\DateFormatter;
 use Icinga\Module\Bem\BemIssue;
+use ipl\Html\Html;
 
 class IssueDetails extends NameValueTable
 {

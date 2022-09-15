@@ -2,10 +2,10 @@
 
 namespace Icinga\Module\Bem\Web\Widget;
 
-use dipl\Html\BaseHtmlElement;
-use dipl\Translation\TranslationHelper;
+use gipfl\Translation\TranslationHelper;
 use Icinga\Date\DateFormatter;
 use Icinga\Module\Bem\Util;
+use ipl\Html\BaseHtmlElement;
 
 class NextNotificationRenderer extends BaseHtmlElement
 {

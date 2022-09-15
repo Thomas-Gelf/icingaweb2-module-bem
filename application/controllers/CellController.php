@@ -2,12 +2,12 @@
 
 namespace Icinga\Module\Bem\Controllers;
 
-use dipl\Html\Html;
-use dipl\Html\HtmlDocument;
-use dipl\Web\Widget\NameValueTable;
+use gipfl\Web\Table\NameValueTable;
 use Icinga\Date\DateFormatter;
 use Icinga\Module\Bem\CellHealth;
 use Icinga\Module\Bem\Config\CellConfig;
+use ipl\Html\Html;
+use ipl\Html\HtmlDocument;
 
 class CellController extends ControllerBase
 {

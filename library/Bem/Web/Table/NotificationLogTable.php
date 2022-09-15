@@ -2,8 +2,8 @@
 
 namespace Icinga\Module\Bem\Web\Table;
 
-use dipl\Html\Link;
-use dipl\Web\Table\ZfQueryBasedTable;
+use gipfl\IcingaWeb2\Link;
+use gipfl\IcingaWeb2\Table\ZfQueryBasedTable;
 use Icinga\Date\DateFormatter;
 use Icinga\Module\Bem\BemIssue;
 use Icinga\Module\Bem\Config\CellConfig;

@@ -2,13 +2,13 @@
 
 namespace Icinga\Module\Bem\Web\Widget;
 
-use dipl\Html\Html;
-use dipl\Html\Link;
-use dipl\Translation\TranslationHelper;
-use dipl\Web\Widget\NameValueTable;
+use gipfl\IcingaWeb2\Link;
+use gipfl\Translation\TranslationHelper;
+use gipfl\Web\Table\NameValueTable;
 use Icinga\Module\Bem\BemIssue;
 use Icinga\Module\Bem\BemNotification;
 use Icinga\Module\Bem\Process\ImpactPosterExitCodes;
+use ipl\Html\Html;
 
 class NotificationDetails extends NameValueTable
 {

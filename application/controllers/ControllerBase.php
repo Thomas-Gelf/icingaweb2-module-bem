@@ -2,7 +2,7 @@
 
 namespace Icinga\Module\Bem\Controllers;
 
-use dipl\Web\CompatController;
+use gipfl\IcingaWeb2\CompatController;
 use Icinga\Module\Bem\Config;
 use Icinga\Module\Bem\Config\CellConfig;
 use Icinga\Module\Bem\IdoDb;

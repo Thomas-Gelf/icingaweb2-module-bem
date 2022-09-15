@@ -2,10 +2,10 @@
 
 namespace Icinga\Module\Bem\Controllers;
 
-use dipl\Html\Html;
-use dipl\Html\Link;
-use dipl\Html\Table;
+use gipfl\IcingaWeb2\Link;
 use Icinga\Module\Bem\Config;
+use ipl\Html\Html;
+use ipl\Html\Table;
 
 class IndexController extends ControllerBase
 {
@@ -42,13 +42,13 @@ class IndexController extends ControllerBase
             'data-base-target' => '_next',
             'class' => 'common-table table-row-selectable'
         ]);
-        $table->header()->add(
+        $table->getHeader()->add(
             $table::row([
                 $this->translate('Cell name')
             ], null, 'th')
         );
         foreach ($cellNames as $cellName) {
-            $table->body()->add(
+            $table->getBody()->add(
                 $table::row([
                     Link::create($cellName, 'bem/cell', ['name' => $cellName])
                 ])

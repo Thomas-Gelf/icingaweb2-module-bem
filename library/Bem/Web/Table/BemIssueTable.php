@@ -2,8 +2,8 @@
 
 namespace Icinga\Module\Bem\Web\Table;
 
-use dipl\Html\Link;
-use dipl\Web\Table\ZfQueryBasedTable;
+use gipfl\IcingaWeb2\Link;
+use gipfl\IcingaWeb2\Table\ZfQueryBasedTable;
 use Icinga\Module\Bem\Config\CellConfig;
 use Icinga\Module\Bem\Util;
 use Icinga\Module\Bem\Web\Widget\NextNotificationRenderer;

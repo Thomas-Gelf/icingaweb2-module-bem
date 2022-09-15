@@ -2,8 +2,6 @@
 
 namespace Icinga\Module\Bem\Controllers;
 
-use dipl\Html\Html;
-use dipl\Html\Table;
 use Icinga\Module\Bem\Web\Table\BemIssueTable;
 
 class IssuesController extends ControllerBase
