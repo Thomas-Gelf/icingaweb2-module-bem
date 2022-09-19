@@ -370,7 +370,7 @@ class CellConfig
         }
 
         foreach ($modifiers as $modifier) {
-            $function = "${modifier}Modifier";
+            $function = "{$modifier}Modifier";
             if (method_exists($this, $function)) {
                 $value = $this->$function($value);
             } else {
