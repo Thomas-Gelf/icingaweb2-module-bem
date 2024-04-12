@@ -193,6 +193,12 @@ class MainRunner
             $cellName = $this->cellName;
             Logger::warning("I'm standby, will promote to master for $cellName in $timeout seconds");
             $this->promoteToMaster = $this->loop()->addTimer($timeout, function () {
+                if (! $this->health->shouldBeMaster()) {
+                    Logger::warning(sprintf("Promotion to master for %s has been interrupted", $this->cellName));
+                    $this->cancelPendingPromotion();
+                    return;
+                }
+
                 $this->runFailSafe(function () {
                     $this->promote();
                 });
