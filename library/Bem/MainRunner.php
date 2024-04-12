@@ -166,23 +166,16 @@ class MainRunner
             && ($this->cell->shouldBeMaster() || ! $this->cell->hasFailOver())) {
             Logger::info("I will run as master for $cellName, no fail-over configured");
             $this->promote();
-
             return;
         }
 
-        if ($this->isMaster && $health->shouldBeMaster()) {
-            return;
-        }
-
-        if ($this->isMaster && ! $health->shouldBeMaster()) {
-            Logger::info("I'm master for $cellName, the other instance is running fine");
-            $this->demote();
-            return;
-        }
-
-        if (! $this->isMaster && $health->shouldBeMaster()) {
+        if ($this->isMaster) {
+            if (!$health->shouldBeMaster()) {
+                Logger::info("I'm master for $cellName, the other instance is running fine");
+                $this->demote();
+            }
+        } elseif ($health->shouldBeMaster()) {
             $this->schedulePromotion();
-            return;
         }
     }
 
